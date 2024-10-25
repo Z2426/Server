@@ -1,0 +1,21 @@
+{
+  "name": "post-serivice",
+  "version": "1.0.0",
+  "description": "A brief description of your project",
+  "main": "app.js",
+  "scripts": {
+    "start": "nodemon --legacy-watch app.js",                
+    "dev": "nodemon app.js"               
+  },
+  "dependencies": {
+    "express": "^4.17.3",                     
+    "mongoose": "^5.12.14",                   
+    "cors": "^2.8.5",
+    "nodemon": "^2.0.12"      ,
+    "dotenv": "^16.4.5"                   
+  },
+  "engines": {
+    "node": ">=14.0.0"                        
+  },
+  "license": "ISC"
+}
