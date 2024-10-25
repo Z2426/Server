@@ -1,24 +1,19 @@
 const mongoose = require('mongoose');
-require('dotenv').config();
-
-const mongoURI = process.env.MONGODB_URI;
-
-const options = {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-  poolSize: 10, // Số lượng kết nối tối đa trong pool
-  minPoolSize: 5, // Số lượng kết nối tối thiểu trong pool
-  maxIdleTimeMS: 30000, // Thời gian tối đa mà một kết nối có thể nằm idle trước khi bị đóng
-};
 
 const connectDB = async () => {
-  try {
-    await mongoose.connect(mongoURI, options);
-    console.log('MongoDB connected!');
-  } catch (err) {
-    console.error('MongoDB connection error:', err);
-    process.exit(1); // Thoát nếu không thể kết nối
-  }
+    try {
+        const mongoUri = `mongodb+srv://${process.env.MONGO_USERNAME}:${process.env.MONGO_PASSWORD}@${process.env.MONGO_CLUSTER}/${process.env.MONGO_DATABASE}?retryWrites=true&w=majority`;
+        console.log("MONGO_URI:", mongoUri);  // Log the URI for debugging
+
+        await mongoose.connect(mongoUri, {
+            useNewUrlParser: true,
+            useUnifiedTopology: true,
+        });
+        console.log("MongoDB connected successfully");
+    } catch (error) {
+        console.error("MongoDB connection error:", error);
+        process.exit(1); // Exit process with failure
+    }
 };
 
-module.exports = connectDB;
+module.exports = connectDB; // Export the connectDB function

@@ -1,11 +1,11 @@
 const express = require('express');
-//const connectDB = require('../../shared/db/db');
+const connectDB = require('./shared/db/db.js');
 const postRoutes = require('./routes/postRoutes');
 require('dotenv').config();
 
 const app = express();
 app.use(express.json());
-//connectDB();
+connectDB();
 
 app.use('/api/posts', postRoutes);
 

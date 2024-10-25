@@ -6,13 +6,12 @@ services:
       context: .
       dockerfile: ./services/user-service/Dockerfile
     container_name: user-service
-    environment:
-      - MONGO_URI=mongodb+srv://${MONGO_USERNAME}:${MONGO_PASSWORD}@${MONGO_CLUSTER}/${MONGO_DATABASE}?retryWrites=true&w=majority
-      - NODE_ENV=development
+    env_file: .env
     ports:
       - "${USER_SERVICE_PORT}:${USER_SERVICE_PORT}"
     volumes:
       - ./services/user-service:/usr/src/app
+      - ./shared:/usr/src/app/shared
       - /usr/src/app/node_modules
     networks:
       - app-network
@@ -22,14 +21,13 @@ services:
       context: .
       dockerfile: ./services/post-service/Dockerfile
     container_name: post-service
-    environment:
-      - MONGO_URI=mongodb+srv://${MONGO_USERNAME}:${MONGO_PASSWORD}@${MONGO_CLUSTER}/${MONGO_DATABASE}?retryWrites=true&w=majority
-      - NODE_ENV=development
+    env_file: .env
     ports:
       - "${POST_SERVICE_PORT}:${POST_SERVICE_PORT}"
     volumes:
       - ./services/post-service:/usr/src/app
       - /usr/src/app/node_modules
+      - ./shared:/usr/src/app/shared
     networks:
       - app-network
 
