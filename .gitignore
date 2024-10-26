@@ -1,1 +1,3 @@
 .env
+services/user-service/.env
+services/post-service/.env

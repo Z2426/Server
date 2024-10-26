@@ -3,6 +3,7 @@ const userService = require('../services/userService');
 // CREATE user
 exports.createUser = async (req, res) => {
   try {
+    global.logger.info("tao user")
     const user = await userService.createUser(req.body);
     res.status(201).json(user);
   } catch (error) {

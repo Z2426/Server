@@ -1,6 +1,6 @@
-// user-service/middlewares/requestWithCircuitBreaker.js
-const CircuitBreaker = require('opossum'); // Thư viện Circuit Breaker
-const axios = require('axios'); // Thư viện Axios để gửi yêu cầu HTTP
+// middlewares/circuitBreaker.js
+const CircuitBreaker = require('opossum');
+const axios = require('axios');
 
 // Cấu hình cho Circuit Breaker
 const options = {
@@ -10,23 +10,27 @@ const options = {
 };
 
 // Hàm gửi yêu cầu với circuit breaker
-const requestWithCircuitBreaker = (url, method = 'GET', data = null) => {
+const requestWithCircuitBreaker = (url, method = 'GET', data = null, headers = {}) => {
   const requestFunction = async () => {
     switch (method) {
       case 'GET':
-        return (await axios.get(url)).data; // Gửi yêu cầu GET
+        return (await axios.get(url, { headers })).data; // Gửi yêu cầu GET
       case 'POST':
-        return (await axios.post(url, data)).data; // Gửi yêu cầu POST
+        return (await axios.post(url, data, { headers })).data; // Gửi yêu cầu POST
       case 'PUT':
-        return (await axios.put(url, data)).data; // Gửi yêu cầu PUT
+        return (await axios.put(url, data, { headers })).data; // Gửi yêu cầu PUT
       case 'DELETE':
-        return (await axios.delete(url)).data; // Gửi yêu cầu DELETE
+        return (await axios.delete(url, { headers })).data; // Gửi yêu cầu DELETE
       default:
         throw new Error('Method not supported'); // Nếu phương thức không hợp lệ
     }
   };
 
-  return new CircuitBreaker(requestFunction, options).fire(); // Tạo Circuit Breaker và gọi hàm yêu cầu
+  const breaker = new CircuitBreaker(requestFunction, options);
+  return breaker.fire(); // Gọi hàm yêu cầu
 };
 
-module.exports = requestWithCircuitBreaker; // Xuất hàm
+
+
+global.requestWithCircuitBreaker = requestWithCircuitBreaker;
+
