@@ -1,0 +1,30 @@
+{"level":"info","message":"Received request: POST /api/test","timestamp":"2024-10-26T07:27:47.498Z"}
+{"level":"info","message":"Received request: GET /api/test","timestamp":"2024-10-26T07:27:52.153Z"}
+{"level":"info","message":"API /api/test was called","timestamp":"2024-10-26T07:27:52.153Z"}
+{"level":"info","message":"API /api/test was called","timestamp":"2024-10-26T07:28:23.808Z"}
+{"level":"info","message":"API /api/test was called","timestamp":"2024-10-26T07:30:35.871Z"}
+{"level":"info","message":null,"timestamp":"2024-10-26T07:53:51.697Z"}
+{"level":"info","message":"API /api/test was called","timestamp":"2024-10-26T07:53:51.699Z"}
+{"level":"info","message":null,"timestamp":"2024-10-26T07:54:13.348Z"}
+{"level":"info","message":"API /api/test was called","timestamp":"2024-10-26T07:54:13.350Z"}
+{"level":"error","message":"Error in /api/test route: Invalid operation: result is NaN","timestamp":"2024-10-26T07:55:27.640Z"}
+{"level":"error","message":"Error in /api/test route: Invalid operation: result is NaN","timestamp":"2024-10-26T07:57:06.021Z"}
+{"level":"error","message":"Error in /api/test route: Invalid operation: result is NaN","timestamp":"2024-10-26T07:57:33.345Z"}
+{"level":"http","message":"[GET] /api/test - 200","timestamp":"2024-10-26T08:01:29.086Z"}
+{"level":"http","message":"[GET] /api/test - 200","timestamp":"2024-10-26T08:01:58.499Z"}
+{"level":"http","message":"[GET] /api/test - 200","timestamp":"2024-10-26T08:02:47.298Z"}
+{"level":"error","message":"Error in /api/test route: Invalid operation: result is NaN","timestamp":"2024-10-26T08:02:47.299Z"}
+{"level":"http","message":"[GET] /api/test - 200","timestamp":"2024-10-26T08:22:47.577Z"}
+{"level":"error","message":"Critical system failure!","timestamp":"2024-10-26T08:22:47.580Z"}
+{"level":"warn","message":"Memory usage is high!","timestamp":"2024-10-26T08:22:47.580Z"}
+{"level":"info","message":"User has logged in.","timestamp":"2024-10-26T08:22:47.581Z"}
+{"level":"http","message":"GET /api/test - 200 OK","timestamp":"2024-10-26T08:22:47.581Z"}
+{"level":"verbose","message":"Processing payment...","timestamp":"2024-10-26T08:22:47.582Z"}
+{"level":"error","message":"Error in /api/test route: userData is not defined","timestamp":"2024-10-26T08:22:47.582Z"}
+{"level":"info","message":"Fetching user with ID: 1000","timestamp":"2024-10-26T09:06:29.145Z"}
+{"level":"info","message":"Fetching user with ID: 1000","timestamp":"2024-10-26T09:07:37.723Z"}
+{"level":"info","message":{"name":"bao an"},"timestamp":"2024-10-26T09:08:29.529Z"}
+{"level":"info","message":"test","name":"bao an","timestamp":"2024-10-26T09:08:54.573Z"}
+{"level":"info","message":"test","name":"bao an","timestamp":"2024-10-26T09:09:45.254Z"}
+{"level":"silly","message":"test","name":"bao an","timestamp":"2024-10-26T09:13:29.702Z"}
+{"level":"warn","message":"test","name":"bao an","timestamp":"2024-10-26T09:13:52.863Z"}

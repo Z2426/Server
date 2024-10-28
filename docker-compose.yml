@@ -1,6 +1,21 @@
 version: '3.8'
 
 services:
+  auth-service:
+    build:
+      context: .
+      dockerfile: ./services/auth-service/Dockerfile
+    container_name: auth-service
+    env_file: .env
+    ports:
+      - "${AUTH_SERVICE_PORT}:${AUTH_SERVICE_PORT}"
+    volumes:
+      - ./services/auth-service:/usr/src/app
+      - ./shared:/usr/src/app/shared
+      - /usr/src/app/node_modules
+    networks:
+      - app-network
+
   user-service:
     build:
       context: .
@@ -26,8 +41,8 @@ services:
       - "${POST_SERVICE_PORT}:${POST_SERVICE_PORT}"
     volumes:
       - ./services/post-service:/usr/src/app
-      - /usr/src/app/node_modules
       - ./shared:/usr/src/app/shared
+      - /usr/src/app/node_modules
     networks:
       - app-network
 
