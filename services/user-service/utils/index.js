@@ -41,4 +41,9 @@ global.hashPassword = hashPassword;
 global.checkPassword = checkPassword;
 global.generateToken = generateToken;
 global.verifyToken = verifyToken;
-
+module.exports = {
+    hashPassword,
+    checkPassword,
+    generateToken,
+    verifyToken,
+};

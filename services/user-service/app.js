@@ -7,6 +7,14 @@ require('./shared/utils/circuitBreaker.js')
 require('./shared/utils/logger.js')
 require('dotenv').config();
 const app = express();
+const cors = require('cors');
+// Cấu hình CORS
+const corsOptions = {
+  origin: 'http://localhost:3002', // Cho phép từ frontend
+  methods: ['GET', 'POST', 'PUT', 'DELETE'], // Các phương thức được phép
+  allowedHeaders: ['Content-Type', 'Authorization'], // Các header cho phép
+};
+app.use(cors(corsOptions));
 app.use(express.json());
 connectDB();
 app.use('/api/users', userRoutes);

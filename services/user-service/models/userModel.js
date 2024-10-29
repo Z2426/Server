@@ -51,6 +51,12 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
+  friendRequests: [
+    {
+      sender: { type: mongoose.Schema.Types.ObjectId, ref: 'Users' },
+      status: { type: String, enum: ['pending', 'accepted', 'rejected'], default: 'pending' },
+    },
+  ],
   loginAttempts: { type: Number, default: 0 },  // Quản lý số lần đăng nhập thất bại
   lastLogin: { type: Date },  // Thời gian đăng nhập cuối
 }, {

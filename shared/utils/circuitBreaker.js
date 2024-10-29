@@ -34,3 +34,4 @@ const requestWithCircuitBreaker = (url, method = 'GET', data = null, headers = {
 
 global.requestWithCircuitBreaker = requestWithCircuitBreaker;
 
+module.exports = requestWithCircuitBreaker; 
