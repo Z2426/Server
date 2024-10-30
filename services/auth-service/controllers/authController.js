@@ -1,5 +1,16 @@
 const authService = require('../services/authService')
 const axios = require('axios');
+exports.verifyTokenController = (req, res) => {
+    const token = req.body.token;
+
+    try {
+        const data = authService.verifyToken(token);
+        res.json(data);
+    } catch (error) {
+        const status = error.message === "Token missing" ? 401 : 403;
+        res.status(status).json({ message: error.message });
+    }
+};
 // Hàm đăng nhập người dùng
 exports.login = async (req, res) => {
     const { email, password } = req.body; // Lấy email và password từ request body

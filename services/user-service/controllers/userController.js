@@ -50,10 +50,10 @@ exports.updateUser = async (req, res) => {
 };
 //verify account 
 exports.verifyAccount = async (req, res) => {
-  const { token } = req.body; // Expecting the token in the request body
-
+  const { userId } = req.body.user; // Expecting the token in the request body
+  console.log(req.body)
   try {
-    const message = await userService.verifyAccount(token);
+    const message = await userService.verifyAccount(userId);
     res.status(200).json({ message });
   } catch (error) {
     res.status(401).json({ message: error.message }); // Changed status to 401 for invalid token or user not found
@@ -79,7 +79,7 @@ exports.requestPasswordReset = async (req, res) => {
 exports.resetPassword = async (req, res) => {
   try {
     const { email, newPassword, token } = req.body;
-
+    console.log(req.body)
     // Call the user service to reset the password
     await userService.resetPassword(email, newPassword, token);
 
@@ -90,7 +90,7 @@ exports.resetPassword = async (req, res) => {
 };
 exports.changePassword = async (req, res) => {
   try {
-    const { userId } = req.params;
+    const { userId } = req.body.user;
     const { oldPassword, newPassword } = req.body;
 
     const result = await userService.changePassword(userId, oldPassword, newPassword);
@@ -102,7 +102,7 @@ exports.changePassword = async (req, res) => {
 };
 exports.getFollowing = async (req, res) => {
   try {
-    const { userId } = req.params;
+    const { userId } = req.body.user;
     const following = await userService.getFollowing(userId);
     res.status(200).json({ following });
   } catch (error) {
@@ -113,7 +113,7 @@ exports.getFollowing = async (req, res) => {
 // Controller function to get the list of followers for this user
 exports.getFollowers = async (req, res) => {
   try {
-    const { userId } = req.params;
+    const { userId } = req.body.user;
     const followers = await userService.getFollowers(userId);
     res.status(200).json({ followers });
   } catch (error) {
@@ -124,7 +124,7 @@ exports.getFollowers = async (req, res) => {
 exports.toggleFollowUser = async (req, res) => {
   try {
     const { followedId } = req.params; // ID of the user to follow/unfollow
-    const followerId = req.body.user.id; // ID of the current user (from token or session)
+    const followerId = req.body.user.userId; // ID of the current user (from token or session)
 
     const { followedUser, isFollowing } = await userService.toggleFollowUser(followerId, followedId);
     const message = isFollowing ? "User followed successfully" : "User unfollowed successfully";
@@ -137,7 +137,7 @@ exports.toggleFollowUser = async (req, res) => {
 exports.sendFriendRequest = async (req, res) => {
   try {
     const { userId } = req.params; // ID of the user to send the request to
-    const senderId = req.body.user.id; // ID of the current user (from token or session)
+    const senderId = req.body.user.userId; // ID of the current user (from token or session)
     // Check if the senderId and userId are the same
     if (senderId === userId) {
       return res.status(400).json({ message: "You cannot send a friend request to yourself." });
@@ -170,8 +170,7 @@ exports.updateFriendRequest = async (req, res) => {
 
 exports.getFriendRequests = async (req, res) => {
   try {
-    const userId = req.body.user.id; // ID of the current user (from token or session)
-
+    const userId = req.body.user.userId; // ID of the current user (from token or session)
     const requests = await userService.getFriendRequests(userId);
     res.status(200).json(requests);
   } catch (error) {
@@ -182,7 +181,7 @@ exports.getFriendRequests = async (req, res) => {
 // get list user blocked
 exports.getBlockedUsers = async (req, res) => {
   try {
-    const currentUserId = req.body.user.id; // Assumes user ID is retrieved from token/session
+    const currentUserId = req.body.user.userId; // Assumes user ID is retrieved from token/session
 
     const blockedUsers = await userService.getBlockedUsers(currentUserId);
 
@@ -199,7 +198,7 @@ exports.getBlockedUsers = async (req, res) => {
 exports.toggleBlockStatus = async (req, res) => {
   try {
     const { userId } = req.params; // ID of the user to toggle block status
-    const currentUserId = req.body.user.id; // ID of the current user (from token or session)
+    const currentUserId = req.body.user.userId; // ID of the current user (from token or session)
 
     // Call the service to toggle block/unblock
     const message = await userService.toggleBlockStatus(currentUserId, userId);
@@ -211,13 +210,20 @@ exports.toggleBlockStatus = async (req, res) => {
 };
 // READ all users with optional field selection
 exports.getAllUsers = async (req, res) => {
+  const user = req.body.user
   try {
+    if (user.role != "Admin") {
+      const error = new Error('Ban khong co quyen truy cap.');
+      error.statusCode = 403; // Mã lỗi 403 
+      throw error; // Ném lỗi
+    }
     const allowedFields = ['firstName', 'lastName', 'email', 'profileUrl'];
     // Call the service to get all users, passing the fields parameter
     const users = await userService.getAllUsers(allowedFields);
     res.status(200).json(users);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    const statusCode = error.statusCode || 400;
+    res.status(statusCode).json({ message: error.message });
   }
 };
 
@@ -243,9 +249,6 @@ exports.getUserById = async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(userId)) {
       return res.status(400).json({ message: 'Invalid user ID' });
     }
-
-
-
     // Call the service to get user by ID, passing the fields array
     const user = await userService.getUserById(userId, allowedFields);
 
@@ -270,7 +273,7 @@ exports.createUser = async (req, res) => {
 // UPDATE user
 exports.updateUser = async (req, res) => {
   try {
-    const userId = req.params.userId
+    const { userId } = req.body.user
     const user = await userService.updateUser(userId, req.body);
     if (!user) return res.status(404).json({ message: 'User not found' });
     res.status(200).json(user);
@@ -282,7 +285,8 @@ exports.updateUser = async (req, res) => {
 // DELETE user
 exports.deleteUser = async (req, res) => {
   try {
-    const user = await userService.deleteUser(req.params.userId);
+    const { userId } = req.body.user
+    const user = await userService.deleteUser(userId);
     if (!user) return res.status(404).json({ message: 'User not found' });
     res.status(200).json({ message: 'User deleted successfully' });
   } catch (error) {

@@ -24,6 +24,4 @@ app.use(errorHandler)
 const PORT = process.env.AUTH_SERVICE_PORT || 3001;
 app.listen(PORT, () => {
   console.log(`User service running on port ${PORT}`);
-  console.log("1120555")
-  console.log('T')
 });
