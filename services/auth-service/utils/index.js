@@ -22,7 +22,7 @@ async function checkPassword(password, hashedPassword) {
 
 // Hàm tạo token
 function generateToken(payload) {
-    const token = jwt.sign(payload, SECRET_KEY, { expiresIn: '1h' }); // Token sẽ hết hạn sau 1 giờ
+    const token = jwt.sign(payload, SECRET_KEY, { expiresIn: '144h' }); // Token sẽ hết hạn sau 1 giờ
     return token; // Trả về token đã tạo
 }
 

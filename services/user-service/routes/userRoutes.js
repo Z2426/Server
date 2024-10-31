@@ -1,8 +1,13 @@
 const express = require('express');
 const userController = require('../controllers/userController');
+const suggestFriends = require('../controllers/suggestFriends')
 const authMiddleware = require('../middleware/authMiddleware')
 const router = express.Router();
-console.log(userController)
+router.get('/search', userController.searchUsers);
+// SUGGEST 
+router.get('/suggested-friends', authMiddleware.verifyTokenMiddleware, suggestFriends.getSuggestedFriends);
+//
+router.get('/getUsersBulk', userController.getUsersBulk);
 // Route để cập nhật thông tin đăng nhập (số lần đăng nhập thất bại và thời gian đăng nhập cuối)
 router.put('/login-info', userController.updateLoginAttempts);
 //get info by email
@@ -26,6 +31,8 @@ router.get("/followers", authMiddleware.verifyTokenMiddleware, userController.ge
 router.post("/friend-request/:userId", authMiddleware.verifyTokenMiddleware, userController.sendFriendRequest);
 router.put("/friend-request", userController.updateFriendRequest);
 router.get("/friend-requests", authMiddleware.verifyTokenMiddleware, userController.getFriendRequests);
+router.post('/friends', authMiddleware.verifyTokenMiddleware, userController.getFriends);
+
 // blocked
 router.get('/toggle-block', authMiddleware.verifyTokenMiddleware, userController.getBlockedUsers)
 router.post('/toggle-block/:userId', authMiddleware.verifyTokenMiddleware, userController.toggleBlockStatus)

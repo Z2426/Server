@@ -1,5 +1,80 @@
 const userService = require('../services/userService');
-const mongoose = require("mongoose");
+const mongoose = require('mongoose');  // Đảm bảo khai báo ở đây
+exports.searchUsers = async (req, res) => {
+  const { keyword } = req.query; // Lấy từ khóa từ query string
+  console.log(keyword)
+  try {
+    const users = await userService.searchUsersByKeyword(keyword); // Gọi service để tìm kiếm người dùng
+    return res.json(users); // Trả về danh sách người dùng tìm được
+  } catch (error) {
+    console.error('Error searching users:', error.message);
+    return res.status(500).json({ message: 'Lỗi trong quá trình tìm kiếm người dùng' });
+  }
+};
+exports.getFriends = async (req, res) => {
+  try {
+    const { userId } = req.body.user;
+    const { page = 1, limit = 10 } = req.query;
+
+    const friendsData = await userService.getFriends(userId, parseInt(page), parseInt(limit));
+    res.status(200).json(friendsData);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+};
+exports.getUsersBulk = async (req, res) => {
+  let { userIds } = req.query; // Retrieve userIds from query parameters
+  console.log("Danh sách user", userIds);
+
+  // Kiểm tra nếu userIds là chuỗi, thì tách nó thành mảng
+  let userIdArray = [];
+  if (typeof userIds === 'string') {
+    userIdArray = userIds.split(',').map(id => id.trim()); // Tách chuỗi và loại bỏ khoảng trắng
+  } else if (Array.isArray(userIds)) {
+    userIdArray = userIds; // Nếu đã là mảng thì sử dụng trực tiếp
+  }
+  console.log("DA TEST GETUSER BULK")
+  try {
+    const users = await userService.getUsersByIds(userIdArray);
+    console.log("List user")
+    console.log(users)
+    return res.json(users);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+exports.getUserById = async (req, res) => {
+  try {
+    const userId = req.params.userId; // Extract userId from params
+
+    // Define allowed fields
+    const allowedFields = [
+      'firstName',
+      'lastName',
+      'email',
+      'profileUrl',
+      'profession',
+      'location',
+      'birthDate',
+      'verified',
+      'statusActive',
+      'lastLogin'
+    ];
+
+    // Validate the userId
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ message: 'Invalid user ID' });
+    }
+    // Call the service to get user by ID, passing the fields array
+    const user = await userService.getUserById(userId, allowedFields);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    res.status(200).json(user); // Return the user data
+  } catch (error) {
+    console.log(error)
+    res.status(400).json({ message: error.message });
+  }
+};
 exports.updateLoginAttempts = async (req, res) => {
   const { loginAttempts, lastLogin, email } = req.body; // Lấy thông tin từ body
   try {
@@ -227,38 +302,7 @@ exports.getAllUsers = async (req, res) => {
   }
 };
 
-exports.getUserById = async (req, res) => {
-  try {
-    const userId = req.params.userId; // Extract userId from params
 
-    // Define allowed fields
-    const allowedFields = [
-      'firstName',
-      'lastName',
-      'email',
-      'profileUrl',
-      'profession',
-      'location',
-      'birthDate',
-      'verified',
-      'statusActive',
-      'lastLogin'
-    ];
-
-    // Validate the userId
-    if (!mongoose.Types.ObjectId.isValid(userId)) {
-      return res.status(400).json({ message: 'Invalid user ID' });
-    }
-    // Call the service to get user by ID, passing the fields array
-    const user = await userService.getUserById(userId, allowedFields);
-
-    if (!user) return res.status(404).json({ message: 'User not found' });
-
-    res.status(200).json(user); // Return the user data
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-};
 // CREATE user
 exports.createUser = async (req, res) => {
   try {

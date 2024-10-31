@@ -1,7 +1,58 @@
-// services/userService.js
-const Users = require('../models/userModel'); // Ensure this is the correct path to your user model
-const { checkPassword, hashPassword, generateToken, verifyToken } = require("../utils/index");
-// API để cập nhật số lần đăng nhập thất bại và thời gian đăng nhập cuối
+const mongoose = require('mongoose');  // Đảm bảo khai báo ở đây
+const Users = require('../models/userModel'); // Đảm bảo đường dẫn chính xác đến model User
+const { checkPassword, hashPassword, generateToken, verifyToken } = require("../utils/index");  // Đảm bảo đường dẫn chính xác
+exports.searchUsersByKeyword = async (keyword) => {
+  try {
+    const users = await Users.find({
+      $or: [
+        { firstName: new RegExp(keyword, 'i') }, // Tìm theo tên
+        { lastName: new RegExp(keyword, 'i') },  // Tìm theo họ
+        { email: new RegExp(keyword, 'i') }       // Tìm theo email
+      ]
+    }, 'firstName lastName profileUrl'); // Chỉ chọn các thuộc tính này
+
+
+    return users; // Trả về danh sách người dùng tìm được
+  } catch (error) {
+    console.error('Error searching users:', error.message);
+    throw new Error('Lỗi trong quá trình tìm kiếm người dùng');
+  }
+};
+exports.getFriends = async (userId, page = 1, limit = 10) => {
+  // Lấy thông tin người dùng và danh sách bạn bè
+  const user = await Users.findById(userId).populate({
+    path: 'friends',
+    select: 'firstName lastName email profileUrl location profession',
+    options: { skip: (page - 1) * limit, limit: limit },
+  });
+
+  if (!user) {
+    throw new Error('Người dùng không tìm thấy');
+  }
+
+  const totalFriends = user.friends.length;
+  const totalPages = Math.ceil(totalFriends / limit);
+
+  return {
+    friends: user.friends,
+    totalFriends,
+    totalPages,
+    currentPage: page,
+  };
+};
+// Hàm lấy thông tin người dùng theo nhiều ID
+exports.getUsersByIds = async (userIds) => {
+  try {
+    const allowedFields = ['firstName', 'lastName', 'profileUrl']
+    // Tạo chuỗi trường cho phép từ mảng allowedFields
+    const fieldsToSelect = allowedFields.join(' ');
+    // Tìm người dùng theo ID và chỉ lấy các trường cho phép
+    const users = await Users.find({ _id: { $in: userIds } }).select(fieldsToSelect);
+    return users;
+  } catch (error) {
+    throw new Error('Error fetching users');
+  }
+};
 // API để cập nhật số lần đăng nhập thất bại và thời gian đăng nhập cuối
 exports.updateLoginInfo = async (email, loginAttempts, lastLogin) => {
   try {
