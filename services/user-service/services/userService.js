@@ -10,8 +10,6 @@ exports.searchUsersByKeyword = async (keyword) => {
         { email: new RegExp(keyword, 'i') }       // Tìm theo email
       ]
     }, 'firstName lastName profileUrl'); // Chỉ chọn các thuộc tính này
-
-
     return users; // Trả về danh sách người dùng tìm được
   } catch (error) {
     console.error('Error searching users:', error.message);

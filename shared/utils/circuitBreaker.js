@@ -11,6 +11,7 @@ const options = {
 
 // Hàm gửi yêu cầu với circuit breaker
 const requestWithCircuitBreaker = (url, method = 'GET', data = null, headers = {}) => {
+  console.log(data)
   const requestFunction = async () => {
     switch (method) {
       case 'GET':

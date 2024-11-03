@@ -29,6 +29,7 @@ function generateToken(payload) {
 // Hàm xác thực token
 function verifyToken(token) {
     try {
+        console.log("DOING DECOED TOKEN ")
         const decoded = jwt.verify(token, SECRET_KEY); // Giải mã token
         return decoded; // Trả về dữ liệu đã giải mã
     } catch (error) {
@@ -42,3 +43,10 @@ global.checkPassword = checkPassword;
 global.generateToken = generateToken;
 global.verifyToken = verifyToken;
 
+// Xuất các hàm
+module.exports = {
+    hashPassword,
+    checkPassword,
+    generateToken,
+    verifyToken,
+};

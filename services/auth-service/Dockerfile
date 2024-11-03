@@ -5,7 +5,7 @@ FROM node:16
 WORKDIR /usr/src/app
 
 # Copy the package files from this service directory to the working directory
-COPY ./services/post-service/package*.json ./
+COPY ./services/auth-service/package*.json ./
 
 # Install dependencies
 # Clear npm cache and remove node_modules if it exists, then install dependencies
@@ -21,7 +21,7 @@ COPY ./shared /usr/src/app/shared
 
 
 # Copy the rest of the user-service code
-COPY ./services/user-service .
+COPY ./services/auth-service .
 # Set environment variable and expose the port
 ENV PORT=3002
 EXPOSE 3002

@@ -2,6 +2,7 @@ const express = require('express');
 const connectDB = require('./shared/db/db.js');
 const authRoutes = require('./routes/authRoutes.js')
 const errorHandler = require('./shared/middleware/errorHandler.js')
+const auth = require('./utils/index.js')
 require('./shared/middleware/logRequest.js')
 require('./shared/utils/circuitBreaker.js')
 require('./shared/utils/logger.js')
@@ -19,6 +20,8 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 connectDB();
+const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2NzFkMTdhZjk0Y2JmNjA3NzI2ZWQ5MmYiLCJyb2xlIjoiVXNlciIsImlhdCI6MTczMDU2NDQzNywiZXhwIjoxNzMxMDgyODM3fQ.ESCvcVEvx-pf7AjDynC6JWg38_usOeT6XdPX5coklPk"
+console.log(auth.verifyToken(token))
 app.use('/api/auth', authRoutes);
 app.use(errorHandler)
 const PORT = process.env.AUTH_SERVICE_PORT || 3001;
