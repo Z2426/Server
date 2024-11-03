@@ -1,21 +1,19 @@
 // services/notificationService.js
 const Notification = require('../models/NotificationModel');
-
-exports.createNotification = async (userId, type, content) => {
-    const notification = new Notification({ userId, type, content });
-    await notification.save();
-    return notification;
+exports.createNotification = async (notificationData) => {
+    const notification = new Notification(notificationData);
+    return await notification.save();
 };
-
-exports.fetchNotifications = async (userId) => {
-    return await Notification.find({ userId });
+exports.getNotificationsByReceiverId = async (reciveId) => {
+    return await Notification.find({ reciveId }).sort({ createdAt: -1 });
 };
-
-exports.updateNotificationStatus = async (id) => {
-    const notification = await Notification.findByIdAndUpdate(id, { isRead: true }, { new: true });
-    return notification;
+exports.markNotificationAsRead = async (notiId, reciveId) => {
+    return await Notification.findOneAndUpdate(
+        { _id: notiId, reciveId },
+        { isRead: true },
+        { new: true }
+    );
 };
-// Xóa thông báo
-exports.deleteNotification = async (id) => {
-    return await Notification.findByIdAndDelete(id);  // Xóa thông báo
+exports.deleteNotification = async (notiId, reciveId) => {
+    return await Notification.findOneAndDelete({ _id: notiId, reciveId });
 };

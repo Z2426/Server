@@ -29,7 +29,7 @@ router.get("/following", authMiddleware.verifyTokenMiddleware, userController.ge
 router.get("/followers", authMiddleware.verifyTokenMiddleware, userController.getFollowers)
 //mange friend
 router.post("/friend-request/:userId", authMiddleware.verifyTokenMiddleware, userController.sendFriendRequest);
-router.put("/friend-request", userController.updateFriendRequest);
+router.put("/friend-request", authMiddleware.verifyTokenMiddleware, userController.updateFriendRequest);
 router.get("/friend-requests", authMiddleware.verifyTokenMiddleware, userController.getFriendRequests);
 router.post('/friends', authMiddleware.verifyTokenMiddleware, userController.getFriends);
 

@@ -63,7 +63,7 @@ exports.loginUser = async (email, password) => {
         }
 
         // Tạo token
-        const token = global.generateToken({ userId: user._id, role: user.role });
+        const token = global.generateToken({ userId: user._id, role: user.role, avatar: user.redirectUrl, name: user.firstName });
 
         // Ghi lại thời gian đăng nhập và reset loginAttempts
         const infoLogin = {

@@ -1,52 +1,63 @@
 // controllers/notificationController.js
 const notificationService = require('../services/NotificationService');
-
-exports.sendNotification = async (req, res) => {
-    const { type, content } = req.body;
-    const { userId } = req.body.user
+exports.createNotification = async (req, res) => {
     try {
-        const notification = await notificationService.createNotification(userId, type, content);
+        const { senderInfo, reciveId, type, postId, message, redirectUrl } = req.body;
+        // Prevent self-notifications
+        if (senderInfo.userId === reciveId) {
+            return res.status(400).json({ message: "Cannot send notification to yourself" });
+        }
+        const notificationData = {
+            senderInfo,
+            reciveId,
+            type,
+            postId,
+            message,
+            redirectUrl,
+        };
+
+        const notification = await notificationService.createNotification(notificationData);
         res.status(201).json(notification);
     } catch (error) {
-        res.status(500).json({ error: 'Đã xảy ra lỗi khi gửi thông báo' });
+        res.status(500).json({ message: error.message });
     }
 };
-
 exports.getNotifications = async (req, res) => {
-    const { userId } = req.body.user;
-
     try {
-        const notifications = await notificationService.fetchNotifications(userId);
-        res.json(notifications);
+        const reciveId = req.body.user.userId;
+        const notifications = await notificationService.getNotificationsByReceiverId(reciveId);
+        res.status(200).json(notifications);
     } catch (error) {
-        res.status(500).json({ error: 'Đã xảy ra lỗi khi lấy thông báo' });
+        res.status(500).json({ message: error.message });
     }
 };
-
 exports.markNotificationAsRead = async (req, res) => {
-    const { notiId } = req.params;
-
     try {
-        const notification = await notificationService.updateNotificationStatus(notiId);
+        const { notiId } = req.params;
+        const reciveId = req.body.user.userId;
+
+        const notification = await notificationService.markNotificationAsRead(notiId, reciveId);
         if (!notification) {
-            return res.status(404).json({ error: 'Thông báo không tìm thấy' });
+            return res.status(404).json({ message: "Notification not found" });
         }
-        res.json(notification);
+
+        res.status(200).json(notification);
     } catch (error) {
-        res.status(500).json({ error: 'Đã xảy ra lỗi khi đánh dấu thông báo' });
+        res.status(500).json({ message: error.message });
     }
 };
-// Xóa thông báo
 exports.deleteNotification = async (req, res) => {
-    const { notiId } = req.params;
-
     try {
-        const notification = await notificationService.deleteNotification(notiId);  // Gọi service để xóa
+        const { notiId } = req.params;
+        const reciveId = req.body.user.userId;
+
+        const notification = await notificationService.deleteNotification(notiId, reciveId);
         if (!notification) {
-            return res.status(404).json({ error: 'Thông báo không tìm thấy' });
+            return res.status(404).json({ message: "Notification not found" });
         }
-        res.json({ message: 'Thông báo đã được xóa thành công' });
+
+        res.status(200).json({ message: "Notification deleted successfully" });
     } catch (error) {
-        res.status(500).json({ error: 'Đã xảy ra lỗi khi xóa thông báo' });
+        res.status(500).json({ message: error.message });
     }
 };

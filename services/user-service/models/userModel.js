@@ -31,7 +31,7 @@ const userSchema = new mongoose.Schema({
   following: [{ type: Schema.Types.ObjectId, ref: 'Users' }],  // Danh sách người mà người dùng đang theo dõi
   blockedUsers: [{ type: Schema.Types.ObjectId, ref: 'Users' }],  // Danh sách chặn người dùng
   views: [{ type: Schema.Types.ObjectId, ref: 'Users' }],
-  verified: { type: Boolean, default: false },
+  verified: { type: Boolean, default: true },//tinh năng xác thực email làm sau
   birthDate: {
     type: Date,
     validate: {

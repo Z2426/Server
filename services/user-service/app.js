@@ -21,33 +21,12 @@ const corsOptions = {
 // Sử dụng middleware
 app.use(cors(corsOptions));
 app.use(express.json());
-
 // Kết nối tới cơ sở dữ liệu
 connectDB();
-
 // Định nghĩa các routes
 app.use('/api/users', userRoutes);
-
-app.post('/send-friend-request', async (req, res) => {
-  const { senderId, receiverId } = req.body;
-  const message = JSON.stringify({
-    success: true,
-    message: `${senderId} has sent a friend request to ${receiverId}`
-  });
-
-  try {
-    const reply = await redisClient.publish('friend_requests', message);
-    console.log('Message published to Redis:', message);
-    return res.send('Friend request sent successfully'); // Thêm return ở đây
-  } catch (err) {
-    console.error('Error publishing message to Redis:', err);
-    return res.status(500).send('Error publishing message'); // Thêm return ở đây
-  }
-});
-
 // Sử dụng middleware xử lý lỗi
 app.use(errorHandler);
-
 // Khởi động server
 const PORT = process.env.USER_SERVICE_PORT || 3001;
 app.listen(PORT, () => {

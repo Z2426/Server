@@ -4,7 +4,7 @@ const router = express.Router();
 const notificationController = require('../controllers/notiController');
 const authMidddleware = require('../middleware/authMiddleware')
 // Gửi thông báo
-router.post('/send', authMidddleware.verifyTokenMiddleware, notificationController.sendNotification);
+router.post('/send', notificationController.createNotification);
 // Đánh dấu thông báo là đã đọc
 router.put('/:notiId/read', authMidddleware.verifyTokenMiddleware, notificationController.markNotificationAsRead);
 // Xóa thông báo

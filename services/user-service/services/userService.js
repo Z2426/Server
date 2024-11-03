@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');  // Đảm bảo khai báo ở đây
 const Users = require('../models/userModel'); // Đảm bảo đường dẫn chính xác đến model User
 const { checkPassword, hashPassword, generateToken, verifyToken } = require("../utils/index");  // Đảm bảo đường dẫn chính xác
+const notification = require('../shared/utils/notification')
 exports.searchUsersByKeyword = async (keyword) => {
   try {
     const users = await Users.find({
@@ -46,6 +47,7 @@ exports.getUsersByIds = async (userIds) => {
     const fieldsToSelect = allowedFields.join(' ');
     // Tìm người dùng theo ID và chỉ lấy các trường cho phép
     const users = await Users.find({ _id: { $in: userIds } }).select(fieldsToSelect);
+    console.log("THong tin sau get bulk", users)
     return users;
   } catch (error) {
     throw new Error('Error fetching users');
@@ -127,9 +129,6 @@ exports.verifyAccount = async (userId) => {
     throw new Error(error.message); // Ném lỗi với thông điệp rõ ràng hơn
   }
 };
-
-
-
 // Tạo một token đặt lại cho người dùng
 exports.generateResetToken = async (email) => {
   try {
@@ -264,8 +263,11 @@ exports.toggleFollowUser = async (followerId, followedId) => {
 // Hàm để gửi yêu cầu kết bạn
 exports.sendFriendRequest = async (userId, senderId) => {
   try {
+    console.log("Test friend request");
+    console.log(`User ID: ${userId}, Sender ID: ${senderId}`);
+
     const user = await Users.findById(userId);
-    if (!user) throw new Error("User not found"); // Ném lỗi nếu không tìm thấy người dùng
+    if (!user) throw new Error("User not found");
 
     // Ngăn không cho gửi yêu cầu kết bạn đến chính mình
     if (userId === senderId) {
@@ -277,22 +279,23 @@ exports.sendFriendRequest = async (userId, senderId) => {
       throw new Error("You are already friends with this user");
     }
 
-    // Kiểm tra yêu cầu kết bạn đang chờ xử lý
+    // Kiểm tra yêu cầu kết bạn hiện tại
     const existingRequest = user.friendRequests.find(request =>
-      request.sender.toString() === senderId && request.status === 'pending'
+      request.sender && request.sender.toString() === senderId && request.status === 'pending'
     );
+
     if (existingRequest) {
-      throw new Error("A pending friend request already exists from this user");
+      throw new Error("A friend request is already pending from this user");
     }
 
-    // Tạo đối tượng yêu cầu kết bạn mới
+    // Tạo và thêm yêu cầu kết bạn mới
     const newFriendRequest = {
-      sender: senderId, // ID của người gửi
-      status: 'pending', // Trạng thái mặc định
+      sender: senderId,
+      status: 'pending',
     };
 
-    // Thêm senderId vào mảng friendRequests
     user.friendRequests.push(newFriendRequest);
+    notification.notifyFriendRequest(userId, senderId);
 
     // Lưu thay đổi
     await user.save();
@@ -300,18 +303,20 @@ exports.sendFriendRequest = async (userId, senderId) => {
     return user; // Trả về người dùng đã được cập nhật
   } catch (error) {
     console.error('Lỗi khi gửi yêu cầu kết bạn:', error.message);
-    throw new Error(error.message); // Ném lỗi với thông điệp rõ ràng hơn
+    throw new Error(error.message);
   }
 };
+
 
 // Hàm để cập nhật trạng thái yêu cầu kết bạn
 exports.updateFriendRequestStatus = async (userId, requestId, newStatus) => {
   try {
     const user = await Users.findById(userId);
+    console.log(user)
     if (!user) {
       return { success: false, message: 'Người dùng không tồn tại.' };
     }
-
+    console.log("request id ", requestId)
     const request = user.friendRequests.id(requestId);
     if (!request) {
       return { success: false, message: 'Yêu cầu kết bạn không tồn tại.' };
@@ -334,6 +339,7 @@ exports.updateFriendRequestStatus = async (userId, requestId, newStatus) => {
         { _id: senderId },
         { $addToSet: { friends: userId } } // Thêm người nhận vào danh sách bạn bè của người gửi
       );
+      notification.notifyFriendAccepted(senderId, userId)
     }
 
     // Nếu trạng thái không phải là 'pending', xóa yêu cầu
