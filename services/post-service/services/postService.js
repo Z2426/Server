@@ -1,5 +1,4 @@
 const Post = require('../models/Post');
-
 const Report = require('../models/reportModel.js')
 const mongoose = require('mongoose');
 const requestWithCircuitBreaker = require('../shared/utils/circuitBreaker.js');
@@ -10,13 +9,11 @@ exports.deletePostIfViolating = async (postId) => {
   if (!deletedPost) {
     throw new Error('Post not found');
   }
-
   // Xóa tất cả báo cáo liên quan đến bài post
   await Report.deleteMany({ postId: postId });
 
   return { message: "Post has been deleted due to violation of guidelines.", post: deletedPost };
 };
-
 // Gỡ bỏ báo cáo và giữ lại bài post
 exports.removeReportFromPost = async (postId) => {
   const deletedReports = await Report.deleteMany({ postId: postId });
@@ -33,9 +30,7 @@ exports.createReport = async (postId, userId, reason) => {
   const report = new Report({ postId, userId, reason });
   return await report.save();
 };
-
 // Hàm lấy danh sách báo cáo
-
 exports.getReportedPosts = async () => {
   console.log("XEM TJONG TIN BAI POSTS")
   return await Report.aggregate([
@@ -78,7 +73,6 @@ exports.searchPosts = async (userId, keyword, page = 1, limit = 10) => {
   try {
     // Chuyển đổi từ khóa thành regex để tìm kiếm không phân biệt chữ hoa chữ thường
     const regex = new RegExp(keyword, 'i');
-
     // Tìm kiếm bài viết theo từ khóa và phân quyền
     const posts = await Post.find({
       $or: [
@@ -104,35 +98,28 @@ exports.searchPosts = async (userId, keyword, page = 1, limit = 10) => {
 };
 exports.getCommentsByPostId = async (postId, page = 1, limit = 10) => {
   const post = await Post.findById(postId);
-
   if (!post) {
     throw new Error('Bài viết không tìm thấy');
   }
-
   // Lấy bình luận với phân trang
   const comments = post.comments.slice((page - 1) * limit, page * limit);
-
   // Lấy danh sách userId từ các bình luận
   const userIds = [...new Set(comments.map(comment => comment.userId.toString()))];
-
   // Lấy thông tin người dùng một lần thông qua user service
   const userInfo = await requestWithCircuitBreaker(
     `${process.env.URL_USER_SERVICE}/getUsersBulk?userIds=${userIds.join(',')}`,
     'GET'
   );
-
   // Tạo bản đồ thông tin người dùng để dễ dàng truy xuất
   const userMap = userInfo.reduce((map, user) => {
     map[user._id] = user;
     return map;
   }, {});
-
   // Kết hợp thông tin người dùng với từng bình luận
   const commentsWithUserInfo = comments.map(comment => ({
     ...comment.toObject(),
     user: userMap[comment.userId.toString()],
   }));
-
   return {
     totalComments: post.comments.length,
     totalPages: Math.ceil(post.comments.length / limit),
@@ -142,17 +129,14 @@ exports.getCommentsByPostId = async (postId, page = 1, limit = 10) => {
 };
 exports.getRepliesByCommentId = async (postId, commentId, page = 1, limit = 5) => {
   const post = await Post.findById(postId);
-
   if (!post) {
     throw new Error('Bài viết không tìm thấy');
   }
-
   // Tìm bình luận theo commentId
   const comment = post.comments.id(commentId);
   if (!comment) {
     throw new Error('Bình luận không tìm thấy');
   }
-
   // Lấy phản hồi với phân trang
   const replies = comment.replies.slice((page - 1) * limit, page * limit);
 

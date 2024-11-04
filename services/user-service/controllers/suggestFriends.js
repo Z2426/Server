@@ -1,5 +1,4 @@
 const suggestFriends = require('../services/suggestFriends')
-
 exports.getSuggestedFriends = async (req, res) => {
     try {
         const { userId } = req.body.user; // Lấy userId từ token hoặc yêu cầu

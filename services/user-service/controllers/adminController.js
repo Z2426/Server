@@ -1,7 +1,5 @@
 // controllers/adminController.js
 const adminService = require("../services/adminService");
-
-
 //MANGE REPORT
 // Lấy danh sách bài post bị báo cáo
 exports.getReports = async (req, res) => {
@@ -14,7 +12,6 @@ exports.getReports = async (req, res) => {
         res.status(500).json({ message: "Internal server error" });
     }
 };
-
 // Xóa bài post nếu vi phạm nguyên tắc
 exports.deletePostViolate = async (req, res) => {
     try {
@@ -26,7 +23,6 @@ exports.deletePostViolate = async (req, res) => {
         res.status(500).json({ message: "Internal server error" });
     }
 };
-
 // Gỡ bỏ báo cáo và giữ lại bài post
 exports.approvePost = async (req, res) => {
     try {
@@ -54,7 +50,6 @@ exports.getUsers = async (req, res) => {
         res.status(500).json({ message: "Error fetching users.", error: error.message });
     }
 };
-
 // Lấy chi tiết người dùng theo ID
 exports.getUserById = async (req, res) => {
     try {
@@ -65,7 +60,6 @@ exports.getUserById = async (req, res) => {
         res.status(500).json({ message: "Error fetching user.", error: error.message });
     }
 };
-
 // Cập nhật thông tin người dùng
 exports.updateUser = async (req, res) => {
     try {
@@ -77,7 +71,6 @@ exports.updateUser = async (req, res) => {
         res.status(500).json({ message: "Error updating user.", error: error.message });
     }
 };
-
 // Xóa người dùng
 exports.deleteUser = async (req, res) => {
     try {

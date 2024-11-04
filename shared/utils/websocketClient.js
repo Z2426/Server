@@ -1,5 +1,4 @@
 const WebSocket = require('ws');
-
 function connectWebSocketClient(url) {
     const socket = new WebSocket(url);
 
@@ -21,5 +20,4 @@ function connectWebSocketClient(url) {
         console.log('Disconnected from WebSocket');
     });
 }
-
 module.exports = connectWebSocketClient;

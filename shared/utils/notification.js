@@ -7,24 +7,17 @@ exports.sendNotification = async (reciveId, senderId, type, postId) => {
             `${process.env.URL_USER_SERVICE}/getUsersBulk?userIds=${senderId}`,
             'GET'
         );
-        console.log("sender notification", senderArray);
-
         // Kiểm tra xem senderArray có dữ liệu không
         if (!senderArray || senderArray.length === 0) {
             throw new Error('Không tìm thấy người gửi');
         }
-
         // Lấy thông tin của người gửi từ phần tử đầu tiên trong mảng
         const sender = senderArray[0];
-
         const senderInfo = {
             userId: sender._id,
             avatar: sender.profileUrl || 'default_avatar_url.png',
             name: sender.firstName,
         };
-
-        console.log("sender info, sender", senderInfo);
-
         // Tạo thông điệp thông báo dựa trên loại thông báo
         let message;
         switch (type) {
@@ -43,7 +36,6 @@ exports.sendNotification = async (reciveId, senderId, type, postId) => {
             default:
                 message = `${sender.firstName} đã gửi cho bạn một thông báo.`;
         }
-
         const notificationData = {
             senderInfo,
             reciveId,
@@ -52,10 +44,8 @@ exports.sendNotification = async (reciveId, senderId, type, postId) => {
             message,
             redirectUrl: postId ? `/post/${postId}` : `/profile/${sender._id}`,
         };
-
         // Gửi thông báo qua endpoint
         const notification = await requestWithCircuitBreaker(`${process.env.URL_NOTIFI_SERVICE}/send`, 'POST', notificationData);
-        console.log("notification", notification);
         return notification;
     } catch (error) {
         console.error('Lỗi khi gửi thông báo:', error.message);

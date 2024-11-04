@@ -1,14 +1,11 @@
 // ./services/websocket-service/redisClient.js
 const redis = require('redis');
-
 const redisClient = redis.createClient({
     url: `redis://${process.env.REDIS_HOST}:${process.env.REDIS_PORT || 6379}`
 });
 const redisSubscriber = redis.createClient({
     url: `redis://${process.env.REDIS_HOST}:${process.env.REDIS_PORT || 6379}`
 });
-
-
 const connectToRedis = async () => {
     try {
         await redisClient.connect();
@@ -18,7 +15,6 @@ const connectToRedis = async () => {
         console.error('Error connecting to Redis:', err);
     }
 };
-
 const subscribeToChannels = (channels, callback) => {
     if (!Array.isArray(channels)) {
         console.error('channels must be an array');
@@ -34,7 +30,6 @@ const subscribeToChannels = (channels, callback) => {
 
     console.log(`Subscribed to channels: ${channels.join(', ')}`);
 };
-
 const unsubscribeFromChannels = (channels) => {
     if (!Array.isArray(channels)) {
         console.error('channels must be an array');
@@ -47,7 +42,6 @@ const unsubscribeFromChannels = (channels) => {
 
     console.log(`Unsubscribed from channels: ${channels.join(', ')}`);
 };
-
 module.exports = {
     connectToRedis,
     subscribeToChannels,

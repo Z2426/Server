@@ -2,7 +2,6 @@ const authService = require('../services/authService')
 const axios = require('axios');
 exports.verifyTokenController = (req, res) => {
     const token = req.body.token;
-
     try {
         const data = authService.verifyToken(token);
         res.json(data);
@@ -14,11 +13,9 @@ exports.verifyTokenController = (req, res) => {
 // Hàm đăng nhập người dùng
 exports.login = async (req, res) => {
     const { email, password } = req.body; // Lấy email và password từ request body
-
     try {
         // Gọi hàm loginUser trong authService để đăng nhập người dùng
         const result = await authService.loginUser(email, password);
-
         // Trả về thông tin người dùng và token
         return res.status(200).json({
             message: 'Đăng nhập thành công',

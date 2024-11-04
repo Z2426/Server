@@ -10,7 +10,6 @@ exports.verifyToken = (token) => {
     if (!token) {
         throw new Error("Token missing");
     }
-
     try {
         const data = global.verifyToken(token);
         if (!data) {
@@ -21,7 +20,6 @@ exports.verifyToken = (token) => {
         throw new Error("Invalid token");
     }
 };
-
 exports.registerUser = async (userData) => {
     const url = `http://user-service:${process.env.USER_SERVICE_PORT}/api/users`; // Địa chỉ của service tạo người dùng
     try {
@@ -30,7 +28,6 @@ exports.registerUser = async (userData) => {
         };
         // Sử dụng hàm requestWithCircuitBreaker để gửi yêu cầu POST
         const newUser = await requestWithCircuitBreaker(url, 'POST', userData, headers);
-        console.log('Người dùng mới đã được tạo:', newUser);
         return newUser; // Trả về dữ liệu người dùng mới
     } catch (error) {
         console.error('Lỗi khi tạo người dùng:', error.response ? error.response.data : error.message);
@@ -43,17 +40,14 @@ exports.loginUser = async (email, password) => {
     try {
         // Tìm người dùng theo email
         const user = await requestWithCircuitBreaker(urlGetUser, "POST", { email: email }); // Chọn cả trường password
-
         // Kiểm tra nếu không tìm thấy người dùng
         if (!user) {
-
             throw new Error('Email không đúng.');
         }
         const isMatch = await global.checkPassword(password, user.password);
         if (!isMatch) {
             // Nếu mật khẩu không khớp, tăng số lần đăng nhập thất bại
             user.loginAttempts += 1;
-            console.log(user.loginAttempts)
             await requestWithCircuitBreaker(urlUpdateInfoLogin, "PUT", {
                 email: email,
                 loginAttempts: user.loginAttempts,
@@ -61,10 +55,8 @@ exports.loginUser = async (email, password) => {
             });
             throw new Error('Mật khẩu không đúng.');
         }
-
         // Tạo token
         const token = global.generateToken({ userId: user._id, role: user.role, avatar: user.redirectUrl, name: user.firstName });
-
         // Ghi lại thời gian đăng nhập và reset loginAttempts
         const infoLogin = {
             email: email,
@@ -72,7 +64,6 @@ exports.loginUser = async (email, password) => {
             lastLogin: new Date()
         };
         await requestWithCircuitBreaker(urlUpdateInfoLogin, "PUT", infoLogin);
-
         return { user, token }; // Trả về thông tin người dùng và token
     } catch (error) {
         console.log(error)
