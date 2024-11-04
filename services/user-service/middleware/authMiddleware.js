@@ -2,7 +2,7 @@ const requestWithCircuitBreaker = require('../shared/utils/circuitBreaker.js');
 exports.verifyTokenMiddleware = async (req, res, next) => {
     // Lấy token từ header (ví dụ: Bearer Token)
     const token = req.headers['authorization']?.split(' ')[1];
-
+    console.log("verify token")
     if (!token) {
         return res.status(401).json({ message: "Token missing" });
     }
@@ -24,4 +24,12 @@ exports.verifyTokenMiddleware = async (req, res, next) => {
 
         return res.status(statusCode).json({ message });
     }
+};
+exports.isAdmin = (req, res, next) => {
+    console.log("checkamdin")
+    if (req.body.user && req.body.user.role === "Admin") {
+        return next(); // Người dùng có quyền Admin, cho phép truy cập
+    }
+
+    return res.status(403).json({ message: "Access denied. Admins only." });
 };

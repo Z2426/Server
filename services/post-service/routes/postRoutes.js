@@ -4,6 +4,16 @@ const router = express.Router();
 const postController = require('../controllers/postController'); // Đảm bảo đường dẫn này chính xác
 const suggestPost = require('../controllers/suggestPost')
 const authMiddleware = require('../middleware/authMiddleware'); // Middleware xác thực
+//REPORT
+// Route báo cáo bài post
+router.post("/:postId/report", authMiddleware.verifyTokenMiddleware, postController.reportPost);
+router.get("/reported", postController.getReports)
+// Route để xóa bài post nếu vi phạm nguyên tắc
+router.delete('/:postId/delete-violate', postController.DeletePostViolate);
+// Route để gỡ bỏ báo cáo và giữ lại bài post
+router.post('/:postId/approve', postController.approvePost);
+// Route lấy danh sách bài post bị báo cáo (chỉ dành cho admin)
+//router.get("/reported", authMiddleware.verifyTokenMiddleware, postController.getReportedPosts);
 //SEARCH POST
 router.get('/search', authMiddleware.verifyTokenMiddleware, postController.searchPosts);
 //NEWSFEDS

@@ -1,7 +1,78 @@
 const Post = require('../models/Post');
+
+const Report = require('../models/reportModel.js')
 const mongoose = require('mongoose');
 const requestWithCircuitBreaker = require('../shared/utils/circuitBreaker.js');
 const axios = require('axios'); // Import axios
+// Xóa bài post nếu vi phạm nguyên tắc
+exports.deletePostIfViolating = async (postId) => {
+  const deletedPost = await Post.findByIdAndDelete(postId);
+  if (!deletedPost) {
+    throw new Error('Post not found');
+  }
+
+  // Xóa tất cả báo cáo liên quan đến bài post
+  await Report.deleteMany({ postId: postId });
+
+  return { message: "Post has been deleted due to violation of guidelines.", post: deletedPost };
+};
+
+// Gỡ bỏ báo cáo và giữ lại bài post
+exports.removeReportFromPost = async (postId) => {
+  const deletedReports = await Report.deleteMany({ postId: postId });
+
+  return { message: "Reports have been removed from the post.", reportCount: deletedReports.deletedCount };
+};
+// Hàm tạo báo cáo cho một bài post
+exports.createReport = async (postId, userId, reason) => {
+  const postExists = await Post.findById(postId);
+
+  if (!postExists) {
+    throw new Error('Post does not exist'); // Nếu không tồn tại, trả về lỗi
+  }
+  const report = new Report({ postId, userId, reason });
+  return await report.save();
+};
+
+// Hàm lấy danh sách báo cáo
+
+exports.getReportedPosts = async () => {
+  console.log("XEM TJONG TIN BAI POSTS")
+  return await Report.aggregate([
+    {
+      $group: {
+        _id: '$postId', // Nhóm theo postId
+        count: { $sum: 1 }, // Đếm số lượt báo cáo
+        userIds: { $addToSet: '$userId' }, // Lấy danh sách userId đã báo cáo
+        reasons: { $push: '$reason' }, // Lưu tất cả lý do báo cáo
+        createdAt: { $first: '$createdAt' } // Lấy thời gian tạo báo cáo đầu tiên
+      }
+    },
+    {
+      $lookup: {
+        from: 'posts', // Tên collection bài post
+        localField: '_id', // Trường postId từ Report
+        foreignField: '_id', // Trường _id trong Post
+        as: 'post' // Lưu kết quả trong post
+      }
+    },
+    {
+      $unwind: { path: '$post', preserveNullAndEmptyArrays: true } // Tách mảng bài post thành đối tượng, cho phép null nếu không tìm thấy
+    },
+    {
+      $project: {
+        _id: 0,
+        postId: '$_id',
+        postDescription: '$post.description',
+        postImage: '$post.image',
+        reportCount: '$count',
+        userIds: '$userIds',
+        reasons: '$reasons',
+        createdAt: '$createdAt'
+      }
+    }
+  ]);
+};
 // Hàm tìm kiếm bài viết theo từ khóa
 exports.searchPosts = async (userId, keyword, page = 1, limit = 10) => {
   try {

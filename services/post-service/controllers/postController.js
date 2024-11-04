@@ -1,4 +1,55 @@
 const postService = require('../services/postService');
+// Xóa bài post nếu vi phạm nguyên tắc
+exports.DeletePostViolate = async (req, res) => {
+  try {
+    const { postId } = req.params; // Lấy postId từ params
+    console.log(postId)
+    const result = await postService.deletePostIfViolating(postId);
+
+    res.json(result);
+  } catch (error) {
+    console.error("Error deleting post:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+// Gỡ bỏ báo cáo và giữ lại bài post
+exports.approvePost = async (req, res) => {
+  try {
+    const { postId } = req.params; // Lấy postId từ params
+    const result = await postService.removeReportFromPost(postId);
+
+    res.json(result);
+  } catch (error) {
+    console.error("Error approving post:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+exports.reportPost = async (req, res) => {
+  try {
+    const { postId } = req.params
+    const { reason } = req.body;
+    const { userId } = req.body.user; // Giả sử bạn đã xác thực người dùng
+    console.log(reason)
+    // Tạo báo cáo
+    const report = await postService.createReport(postId, userId, reason);
+    res.status(201).json({ message: "Report created successfully", report });
+  } catch (error) {
+    console.error("Error creating report:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+exports.getReports = async (req, res) => {
+  try {
+    const reportedPosts = await postService.getReportedPosts();
+    res.json(reportedPosts);
+  } catch (error) {
+    console.error("Error fetching reported posts:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+
+};
 // API Controller để tìm kiếm bài viết
 exports.searchPosts = async (req, res) => {
   const { keyword, page, limit } = req.query;

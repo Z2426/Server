@@ -4,24 +4,23 @@ const authRoutes = require('./routes/authRoutes.js')
 const errorHandler = require('./shared/middleware/errorHandler.js')
 const auth = require('./utils/index.js')
 require('./shared/middleware/logRequest.js')
-require('./shared/utils/circuitBreaker.js')
+const requestWithCircuitBreaker = require('./shared/utils/circuitBreaker.js')
 require('./shared/utils/logger.js')
 require('./utils/index.js');
 require('dotenv').config();
+const axios = require('axios');
 const app = express();
 const cors = require('cors');
 app.use(express.json());
 // Cấu hình CORS
 const corsOptions = {
-  origin: 'http://localhost:3001', // Cho phép từ frontend
+  origin: `${process.env.URL_POST_SERVICE}`, // Cho phép từ frontend
   methods: ['GET', 'POST', 'PUT', 'DELETE'], // Các phương thức được phép
   allowedHeaders: ['Content-Type', 'Authorization'], // Các header cho phép
 };
 
 app.use(cors(corsOptions));
 connectDB();
-const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2NzFkMTdhZjk0Y2JmNjA3NzI2ZWQ5MmYiLCJyb2xlIjoiVXNlciIsImlhdCI6MTczMDU2NDQzNywiZXhwIjoxNzMxMDgyODM3fQ.ESCvcVEvx-pf7AjDynC6JWg38_usOeT6XdPX5coklPk"
-console.log(auth.verifyToken(token))
 app.use('/api/auth', authRoutes);
 app.use(errorHandler)
 const PORT = process.env.AUTH_SERVICE_PORT || 3001;
