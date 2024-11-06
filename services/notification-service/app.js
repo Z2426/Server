@@ -2,7 +2,7 @@ const express = require('express');
 const connectDB = require('./shared/db/db.js');
 const notifiRoutes = require('./routes/notiRoutes.js')
 const errorHandler = require('./shared/middleware/errorHandler.js')
-
+const { connectToRedis, subscribeToChannels, sendMessageToRedis } = require('./shared/utils/redisClient');
 require('./shared/middleware/logRequest.js')
 require('./shared/utils/circuitBreaker.js')
 require('dotenv').config();
@@ -15,7 +15,6 @@ const corsOptions = {
     methods: ['GET', 'POST', 'PUT', 'DELETE'], // Các phương thức được phép
     allowedHeaders: ['Content-Type', 'Authorization'], // Các header cho phép
 };
-
 app.use(cors(corsOptions));
 connectDB();
 app.use('/api/notifi', notifiRoutes);
