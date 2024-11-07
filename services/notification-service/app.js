@@ -2,7 +2,7 @@ const express = require('express');
 const connectDB = require('./shared/db/db.js');
 const notifiRoutes = require('./routes/notiRoutes.js')
 const errorHandler = require('./shared/middleware/errorHandler.js')
-const { connectToRedis, subscribeToChannels, sendMessageToRedis } = require('./shared/utils/redisClient');
+const { connectToRedis, subscribeToChannels, sendMessageToRedis } = require('./shared/redis/redisClient');
 require('./shared/middleware/logRequest.js')
 require('./shared/utils/circuitBreaker.js')
 require('dotenv').config();
