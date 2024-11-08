@@ -1,5 +1,5 @@
 const { Server } = require("socket.io");
-const { updateUserStatus, handleSendMessage, handleUserDisconnect } = require("../shared/redis/redisHandler");
+const { addUserSocket, removeUserSocket } = require("../shared/redis/redisHandler");
 
 const createSocketServer = (server) => {
     const io = new Server(server, {
@@ -10,33 +10,34 @@ const createSocketServer = (server) => {
             credentials: true
         }
     });
+
     io.on('connection', (socket) => {
         console.log(`Client connected with id: ${socket.id}`);
-        // Khi người dùng online (mở trang)
+
+        // Khi người dùng online
         socket.on("userOnline", async ({ userId }) => {
-            await updateUserStatus(userId, "online", socket, io);
-        });
-        // Khi người dùng offline (đóng trang)
-        socket.on("userOffline", async ({ userId }) => {
-            await updateUserStatus(userId, "offline", socket, io);
+            socket.userId = userId; // Lưu userId vào socket
+            await addUserSocket(userId, socket.id);  // Lưu socket.id vào Redis
         });
 
-        // Khi người dùng gửi tin nhắn
-        socket.on('send_message', async (messageData) => {
-            console.log(`Received message from ${socket.id}:`, messageData);
-            await handleSendMessage(messageData, socket);
+        // Khi người dùng offline
+        socket.on("userOffline", async ({ userId }) => {
+            await removeUserSocket(userId, socket.id); // Xóa socket.id khỏi Redis
         });
+
+
         // Khi người dùng ngắt kết nối
         socket.on('disconnect', async () => {
             console.log('Client disconnected');
-            const userId = socket.userId; // Giả sử userId đã được gán từ phía client khi đăng nhập
+            const userId = socket.userId;
 
             if (userId) {
-                await handleUserDisconnect(userId, socket, io);
+                await removeUserSocket(userId, socket.id); // Xóa socket.id khỏi Redis khi ngắt kết nối
             }
         });
     });
 
     return io;
 };
+
 module.exports = createSocketServer;
