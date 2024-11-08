@@ -6,8 +6,7 @@ const redisClient = redis.createClient({
 const redisSubscriber = redis.createClient({
     url: 'redis://redis:6379'
 });
-
-// Kết nối tới Redis
+// Kết nối taới Redis
 const connectToRedis = async () => {
     try {
         // Chờ Redis client và subscriber kết nối
@@ -18,24 +17,9 @@ const connectToRedis = async () => {
         console.error('Error connecting to Redis:', err);
     }
 };
+// Function to connect to Redis and listen for events
 
-// Đăng ký lắng nghe các kênh Redis
-const subscribeToChannels = async (channels, callback) => {
-    if (!Array.isArray(channels)) {
-        console.error('channels must be an array');
-        return;
-    }
 
-    for (const channel of channels) {
-        // Đảm bảo rằng subscribe được thực hiện đúng sau khi kết nối
-        await redisSubscriber.subscribe(channel, (message) => {
-            console.log(`Received message from channel ${channel}:`, message);
-            callback(channel, message); // Gửi kênh và thông điệp về callback
-        });
-    }
-
-    console.log(`Subscribed to channels: ${channels.join(', ')}`);
-};
 
 // Hủy đăng ký khỏi các kênh Redis
 const unsubscribeFromChannels = async (channels) => {
@@ -82,6 +66,56 @@ const disconnectFromRedis = async () => {
         console.error('Error disconnecting from Redis:', err);
     }
 };
+const scanForChannels = async (redisSubscriber, pattern, callback) => {
+    let cursor = '0';
+    let channels = [];
+
+    try {
+        do {
+            // Quét Redis theo mẫu pattern
+            const [nextCursor, foundChannels] = await redisSubscriber.scan(cursor, 'MATCH', pattern);
+
+            cursor = nextCursor;
+
+            // Kiểm tra nếu foundChannels là một mảng hợp lệ
+            if (Array.isArray(foundChannels)) {
+                channels.push(...foundChannels);
+            } else {
+                console.error('Expected foundChannels to be an array, but got:', foundChannels);
+            }
+        } while (cursor !== '0');  // Quét đến khi cursor trở về '0'
+
+        // Kiểm tra nếu có kênh nào đã được tìm thấy
+        if (channels.length > 0) {
+            await subscribeToChannels(channels, callback); // Đăng ký các kênh
+        } else {
+            console.log(`No channels matched the pattern: ${pattern}`);
+        }
+
+        // Gọi callback nếu có
+        if (callback) callback(channels);
+    } catch (error) {
+        console.error('Error during Redis scan or subscription:', error);
+    }
+};
+
+// Subscribe to Redis channels
+const subscribeToChannels = async (channels, callback) => {
+    if (!Array.isArray(channels)) {
+        console.error('channels must be an array');
+        return;
+    }
+
+    for (const channel of channels) {
+        // Đảm bảo rằng đăng ký kênh được thực hiện đúng cách
+        await redisSubscriber.subscribe(channel, (message) => {
+            console.log(`Received message from channel ${channel}:`, message);
+            callback(channel, message); // Gửi kênh và thông điệp về callback
+        });
+    }
+
+    console.log(`Successfully subscribed to channels: ${channels.join(', ')}`);
+};
 
 // Xuất các hàm
 module.exports = {
@@ -93,4 +127,5 @@ module.exports = {
     disconnectFromRedis,
     redisClient,
     redisSubscriber,
+    scanForChannels
 };
