@@ -8,12 +8,14 @@ const ConversationSchema = new mongoose.Schema({
         senderId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
         timestamp: Date,
     },
+    name: { type: String, required: false }, // Trường tên nhóm (chỉ áp dụng cho nhóm)
     unreadCounts: [
         {
             userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
             count: { type: Number, default: 0 },
         },
-    ],
+    ], blockedUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // Lưu người bị chặn
+    admins: [{ type: Schema.Types.ObjectId, ref: 'User' }]
 }, { timestamps: true });
 
 module.exports = mongoose.model("Conversation", ConversationSchema);

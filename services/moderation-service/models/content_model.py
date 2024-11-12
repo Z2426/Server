@@ -13,25 +13,17 @@ clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch16")
 # Tải mô hình và tokenizer cho văn bản
 tokenizer = AutoTokenizer.from_pretrained("vinai/phobert-base")
 text_model = AutoModel.from_pretrained("vinai/phobert-base")
-
-# Danh sách các nhãn nhạy cảm bổ sung
+#danh sach nhan nhay cam
 sensitive_labels = [
-    "toxic", "nudity", "violence", "horror", "blood", "gore", "murder",
-    "assault", "abuse", "self-harm", "slasher", "disturbing", "graphic", "cruelty"
+    "toxic", "nudity", "violence", "horror", "blood", "gore", "murder", 
+    "assault", "abuse", "self-harm", "slasher", "disturbing", "graphic", "cruelty", 
+    "hate", "terrorism", "suicide", "death", "rape", "torture", "war", "execution",
+    "drugs", "child abuse", "weapon", "stabbing", "shooting", "massacre", "genocide", 
+    "animal cruelty", "domestic violence", "bullying", "abortion", "explosion", "poison",
+    "addiction", "gang violence", "extremism", "hostage", "harassment", "racism", 
+    "sex trafficking", "human trafficking", "human rights violations", "sexually explicit", 
+    "extreme violence", "sexual abuse", "brutality", "crimes against humanity", "child pornography"
 ]
-
-# Danh sách từ nhạy cảm
-sensitive_words = [
-    "giết", "bạo lực", "tội ác", "ma túy", "hành hung", "tự sát", "đâm chém",
-    "xâm hại", "thảm sát", "hại người", "hãm hiếp", "đánh đập", "thương tật",
-    "khủng bố", "hận thù", "mê tín", "độc ác", "tình dục", "tội phạm",
-    "sát thủ", "cái chết", "đau khổ", "bệnh tật", "nạn nhân", "cô đơn",
-    "bạo hành", "hành vi", "nỗi đau", "tâm lý", "thảm họa", "nỗi sợ",
-    "sự lạm dụng", "mâu thuẫn", "xã hội đen", "ma quái", "vô gia cư",
-    "sự tổn thương", "khổ sở", "mâu thuẫn xã hội", "vấn đề", "căng thẳng",
-    "sát nhân", "giết người"
-]
-
 def load_image(image_url):
     try:
         response = requests.get(image_url)
@@ -70,23 +62,27 @@ def check_sensitive_image(image_url):
     print("Ảnh không nhạy cảm.")
     return False, None
 
-def get_embedding(text):
-    inputs = tokenizer(text, return_tensors="pt", padding=True, truncation=True)
+# Hàm phân loại văn bản
+def classify_text(text):
+    # Tokenize văn bản
+    inputs = tokenizer(text, return_tensors="pt", truncation=True, padding=True)
+
+    # Dự đoán kết quả
     with torch.no_grad():
         outputs = text_model(**inputs)
-    return outputs.last_hidden_state.mean(dim=1)
+    
+    # Xử lý đầu ra
+    logits = outputs.logits
+    predicted_class = torch.argmax(logits, dim=1).item()
+    
+    # Trả về kết quả boolean
+    return predicted_class == 1
 
+# Hàm kiểm tra văn bản nhạy cảm
 def check_sensitive_text(text):
-    text_embedding = get_embedding(text).numpy()
-
-    for word in sensitive_words:
-        word_embedding = get_embedding(word).numpy()
-        similarity = cosine_similarity(text_embedding, word_embedding)
-
-        if similarity[0][0] > 0.5:
-            print(f"Từ nhạy cảm phát hiện: {word} (độ tin cậy: {similarity[0][0]:.2f})")
-            return True, word
-
-    print("Không phát hiện từ nhạy cảm.")
-    return False, None
-
+    if classify_text(text):
+        print(f"Văn bản nhạy cảm phát hiện: {text}")
+        return True, text
+    else:
+        print("Văn bản không nhạy cảm.")
+        return False, None
