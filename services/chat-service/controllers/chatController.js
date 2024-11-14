@@ -1,5 +1,33 @@
-const messageService = require("../services/messageService");
+const messageService = require("../services/chatPrivateService");
+exports.getAllMessagesInConversation = async (req, res) => {
+    const { conversationId } = req.params;  // Lấy conversationId từ params
+    const { limit, page } = req.query;      // Lấy limit và page từ query string
 
+    try {
+        // Lấy tất cả tin nhắn trong hội thoại
+        const messages = await messageService.getAllMessagesInConversation(conversationId, parseInt(limit), parseInt(page));
+
+        return res.status(200).json({
+            messages,
+            page: page,
+            limit: limit
+        });
+    } catch (error) {
+        console.error("Lỗi khi lấy tin nhắn trong hội thoại:", error);
+        return res.status(500).json({ message: "Không thể lấy tin nhắn trong hội thoại." });
+    }
+};
+exports.createPersonalConversation = async (req, res) => {
+    const { userIds } = req.body;  // Lấy danh sách userIds từ request body
+
+    try {
+        const newConversation = await messageService.createPersonalConversation(userIds);
+        res.status(201).json(newConversation);  // Trả về hội thoại đã tạo
+    } catch (error) {
+        console.error("Lỗi khi tạo hội thoại cá nhân:", error);
+        res.status(500).json({ message: error.message });  // Trả về lỗi nếu có
+    }
+};
 exports.replyToMessageController = async (req, res) => {
     const { senderId, conversationId, messageId, content, file } = req.body;
 
@@ -49,7 +77,8 @@ exports.searchMessagesByContentController = async (req, res) => {
 };
 
 exports.toggleBlockUserMessageController = async (req, res) => {
-    const { conversationId, userId } = req.body;
+    const { conversationId } = req.body;
+    const { userId } = req.params
 
     try {
         const result = await messageService.toggleBlockUserMessage(conversationId, userId);

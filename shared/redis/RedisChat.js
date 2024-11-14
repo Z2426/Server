@@ -14,6 +14,7 @@ const subscribeToRedisChannels = async (io, redisSubscriber) => {
                 // Xử lý tin nhắn dựa trên kênh
                 if (channel.startsWith("chatuser:")) {
                     const userId = channel.split(":")[1];
+                    console.log("test chat person")
                     io.to(userId).emit("receivePersonalMessage", parsedMessage);
                 } else if (channel.startsWith("chatgroup:")) {
                     const [_, groupId, memberId] = channel.split(":");

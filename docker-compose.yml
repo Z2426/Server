@@ -49,6 +49,26 @@ services:
     depends_on:
       - redis
 
+  chat-service:
+    build:
+      context: .
+      dockerfile: ./services/chat-service/Dockerfile
+    container_name: chat-service
+    env_file: .env
+    ports:
+      - "${CHAT_SERVICE_PORT}:${CHAT_SERVICE_PORT}"
+    volumes:
+      - ./services/chat-service:/usr/src/app
+      - ./shared:/usr/src/app/shared
+      - /usr/src/app/node_modules
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    networks:
+      - app-network
+    depends_on:
+      - redis
+
   user-service:
     build:
       context: .
@@ -110,31 +130,10 @@ services:
     depends_on:
       - redis
 
-  moderation-service:
-    build:
-      context: .
-      dockerfile: ./services/moderation-service/Dockerfile
-    container_name: moderation-service
-    env_file: .env
-    ports:
-      - "${MODERATION_SERVICE_PORT}:${MODERATION_SERVICE_PORT}"
-    volumes:
-      - ./services/moderation-service:/usr/src/app
-      - ./shared:/usr/src/app/shared
-      - /usr/src/app/node_modules
-      - cache_volume:/root/.cache  # Gắn volume cho cache
-    environment:
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-    networks:
-      - app-network
-    depends_on:
-      - redis
-
 networks:
   app-network:
     driver: bridge
 
 volumes:
-  cache_volume:  # Định nghĩa volume cho cache
-  redis_data:    # Volume cho Redis
+  cache_volume: {}  # Volume cho cache
+  redis_data: {}    # Volume cho Redis

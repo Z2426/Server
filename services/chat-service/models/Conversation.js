@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-
+const Schema = mongoose.Schema;
 const ConversationSchema = new mongoose.Schema({
     type: { type: String, enum: ["personal", "group"], required: true },
     members: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],

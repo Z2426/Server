@@ -1,8 +1,12 @@
 const Conversation = require("../models/Conversation");
 const Message = require("../models/Message");
-const redisClient = require("../config/redis");
 const GroupActivity = require("../models/GroupActivity");
 const Invitation = require("../models/Invitation");
+const redis = require('redis');
+
+const redisClient = redis.createClient({
+    url: 'redis://redis:6379'
+});
 // Gửi tin nhắn nhóm
 // Gửi tin nhắn nhóm (có thể kèm tệp)
 exports.sendGroupMessage = async (senderId, groupId, content, file) => {
@@ -167,24 +171,6 @@ exports.isAdmin = (userId, conversationId) => {
     return conversation.admins.includes(userId);
 };
 
-// Hàm tìm kiếm tin nhắn trong nhóm
-exports.searchMessagesInGroup = async (conversationId, searchTerm, limit = 20, page = 1) => {
-    try {
-        // Tìm kiếm tin nhắn trong nhóm có chứa từ khóa tìm kiếm
-        const messages = await Message.find({
-            conversationId,
-            text: { $regex: searchTerm, $options: 'i' }  // Tìm kiếm không phân biệt chữ hoa, chữ thường
-        })
-            .sort({ timestamp: -1 })  // Sắp xếp tin nhắn theo thời gian mới nhất
-            .skip((page - 1) * limit)  // Phân trang
-            .limit(limit);  // Giới hạn số tin nhắn trả về
-
-        return messages;
-    } catch (error) {
-        console.error("Lỗi khi tìm kiếm tin nhắn trong nhóm:", error);
-        throw error;
-    }
-};
 
 // Gửi lời mời vào nhóm
 exports.sendGroupInvite = async (senderId, conversationId, recipientId) => {

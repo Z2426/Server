@@ -1,11 +1,32 @@
-const express = require("express");
+const express = require('express');
+const connectDB = require('./shared/db/db.js');
+const chatRoutes = require('./routes/indexRoute.js')
+const errorHandler = require('./shared/middleware/errorHandler.js')
+const { connectToRedis, subscribeToChannels, sendMessageToRedis } = require('./shared/redis/redisClient');
+require('./shared/middleware/logRequest.js')
+require('./shared/utils/circuitBreaker.js')
+require('dotenv').config();
 const app = express();
-const bodyParser = require("body-parser");
-const cors = require("cors");
-const chatRoutes = require("./routes/chatRoutes");
+const cors = require('cors');
+app.use(express.json());
+// Cấu hình CORS
+const corsOptions = {
+    origin: 'http://localhost:3001', // Cho phép từ frontend
+    methods: ['GET', 'POST', 'PUT', 'DELETE'], // Các phương thức được phép
+    allowedHeaders: ['Content-Type', 'Authorization'], // Các header cho phép
+};
+app.use(cors(corsOptions));
+connectDB();
+try {
+    const redis = require('redis');  // Cố gắng yêu cầu module 'redis'
+    console.log("Redis module has been installed!");
+} catch (error) {
+    console.error("Redis module is not installed:", error);
+}
 
-app.use(cors());
-app.use(bodyParser.json());
-app.use("/api/chat", chatRoutes);
-
-module.exports = app;
+app.use('/', chatRoutes);
+app.use(errorHandler)
+const PORT = process.env.CHAT_SERVICE_PORT || 3007;
+app.listen(PORT, () => {
+    console.log(`User service running on port ${PORT}`);
+});

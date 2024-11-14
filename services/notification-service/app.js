@@ -20,7 +20,7 @@ connectDB();
 app.use('/api/notifi', notifiRoutes);
 app.use(errorHandler)
 
-const PORT = process.envNOTIFi_SERVICE_PORT || 3004;
+const PORT = process.env.NOTIFi_SERVICE_PORT || 3004;
 app.listen(PORT, () => {
     console.log(`User service running on port ${PORT}`);
 });

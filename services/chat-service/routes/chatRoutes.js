@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const messageController = require("../controllers/messageController");
+const messageController = require("../controllers/chatController");
 
 // Gửi tin nhắn trả lời
 router.post("/message/reply", messageController.replyToMessageController);
@@ -15,6 +15,9 @@ router.put("/message/mark-read", messageController.markMessagesAsReadController)
 router.get("/message/search", messageController.searchMessagesByContentController);
 
 // Chặn/mở khóa người dùng trong tin nhắn
-router.put("/message/block-user", messageController.toggleBlockUserMessageController);
-
+router.put("/message/block-user/:userId", messageController.toggleBlockUserMessageController);
+// Mở cuộc hội thoại tin nhắn
+router.get("/conversation/:conversationId/messages", messageController.getAllMessagesInConversation);
+// Mở đoạn thoại cá nhân
+router.post('/message/create', messageController.createPersonalConversation);
 module.exports = router;
