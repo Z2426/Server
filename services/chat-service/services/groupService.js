@@ -4,6 +4,105 @@ const GroupActivity = require("../models/GroupActivity");
 const Invitation = require("../models/Invitation");
 const { redisClient, connectToRedis } = require("../shared/redis/redisClient");
 connectToRedis();
+exports.unblockMemberInGroup = async (conversationId, adminId, memberId) => {
+    try {
+        // Tìm cuộc trò chuyện (nhóm) theo conversationId
+        const conversation = await Conversation.findById(conversationId);
+        if (!conversation) {
+            throw new Error("Nhóm không tồn tại.");
+        }
+
+        // Kiểm tra xem adminId có phải là quản trị viên của nhóm không
+        if (!conversation.admins.includes(adminId)) {
+            throw new Error("Bạn không có quyền gỡ chặn thành viên trong nhóm này.");
+        }
+
+        // Kiểm tra xem memberId có phải là thành viên đã bị chặn không
+        if (!conversation.blockedUsers.includes(memberId)) {
+            throw new Error("Thành viên này chưa bị chặn.");
+        }
+
+        // Loại bỏ memberId khỏi blockedUsers và thêm lại vào members
+        conversation.blockedUsers = conversation.blockedUsers.filter(member => member.toString() !== memberId.toString());
+        conversation.members.push(memberId);
+
+        // Lưu cập nhật nhóm
+        const updatedConversation = await conversation.save();
+
+        // Ghi lại hoạt động gỡ chặn thành viên vào GroupActivity
+        const groupActivity = new GroupActivity({
+            groupId: conversationId,
+            activityType: 'unblock_member', // Đã thêm 'unblock_member' vào enum
+            performedBy: adminId, // Người thực hiện hành động (admin)
+            affectedUser: memberId, // Thành viên bị gỡ chặn
+            additionalInfo: "Gỡ chặn thành viên trong nhóm",
+        });
+        await groupActivity.save();
+
+        // Trả về nhóm đã được cập nhật
+        return updatedConversation;
+    } catch (error) {
+        console.error("Lỗi trong unblockMemberInGroup:", error);
+        throw new Error(`Lỗi khi gỡ chặn thành viên: ${error.message}`);
+    }
+};
+
+exports.blockMemberInGroup = async (conversationId, adminId, memberId) => {
+    try {
+        // Tìm cuộc trò chuyện (nhóm) theo conversationId
+        const conversation = await Conversation.findById(conversationId);
+        if (!conversation) {
+            throw new Error("Nhóm không tồn tại.");
+        }
+
+        // Kiểm tra xem adminId có phải là quản trị viên của nhóm không
+        if (!conversation.admins.includes(adminId)) {
+            throw new Error("Bạn không có quyền chặn thành viên trong nhóm này.");
+        }
+
+        // Kiểm tra xem memberId có phải là thành viên trong nhóm không
+        if (!conversation.members.includes(memberId)) {
+            throw new Error("Thành viên không tồn tại trong nhóm.");
+        }
+
+        // Kiểm tra nếu danh sách blockedUsers tồn tại và thành viên đã bị chặn
+        if (conversation.blockedUsers && conversation.blockedUsers.includes(memberId)) {
+            throw new Error("Thành viên đã bị chặn trước đó.");
+        }
+
+        // Khởi tạo blockedUsers nếu chưa tồn tại
+        if (!conversation.blockedUsers) {
+            conversation.blockedUsers = [];
+        }
+
+        // Khởi tạo members nếu chưa tồn tại
+        if (!conversation.members) {
+            conversation.members = [];
+        }
+
+        // Thêm memberId vào blockedUsers và loại bỏ khỏi members
+        conversation.blockedUsers.push(memberId);
+        conversation.members = conversation.members.filter(member => member !== memberId);
+
+        // Lưu cập nhật nhóm
+        const updatedConversation = await conversation.save();
+
+        // Ghi lại hoạt động chặn thành viên vào GroupActivity
+        const groupActivity = new GroupActivity({
+            groupId: conversationId,
+            activityType: 'block_member',
+            performedBy: adminId, // Người thực hiện hành động (admin)
+            affectedUser: memberId, // Thành viên bị chặn
+            additionalInfo: "Chặn thành viên trong nhóm",
+        });
+        await groupActivity.save();
+
+        return updatedConversation;
+    } catch (error) {
+        console.error("Lỗi trong blockMemberInGroup:", error);
+        throw new Error(`Lỗi khi chặn thành viên: ${error.message}`);
+    }
+};
 
 exports.createGroup = async (userId, groupName, groupDescription, members, isPrivate) => {
     // Kiểm tra kiểu dữ liệu của members
@@ -117,12 +216,14 @@ exports.sendGroupMessage = async (conversationId, senderId, content, fileUrl) =>
         });
         await groupActivity.save();
 
+        // Trả về kết quả với thông tin tin nhắn đã gửi
         return { success: true, message: "Tin nhắn đã được gửi thành công." };
     } catch (error) {
         console.error("Lỗi khi gửi tin nhắn:", error);
         throw new Error(`Lỗi khi gửi tin nhắn: ${error.message}`);
     }
 };
+
 // Thêm thành viên vào nhóm
 exports.addMemberToGroup = async (userId, groupId, newMembers) => {
     try {
@@ -191,51 +292,78 @@ exports.removeMemberFromGroup = async (conversationId, adminId, memberId, reason
     throw new Error("Không tìm thấy thành viên trong nhóm");
 };
 
-// Gửi lời mời vào nhóm
-exports.sendGroupInvite = async (senderId, conversationId, recipientId) => {
-    const conversation = await Conversation.findById(conversationId);
-    if (!conversation || conversation.members.includes(recipientId)) {
-        throw new Error("Lời mời không hợp lệ");
-    }
-    const invitation = await Invitation.create({
-        conversationId,
-        senderId,
-        recipientId,
-        status: 'pending',
-    });
-    return invitation;
-};
-
-// Xử lý lời mời vào nhóm
-exports.handleGroupInvite = async (userId, invitationId, status) => {
-    const invitation = await Invitation.findById(invitationId);
-    if (!invitation || invitation.recipientId.toString() !== userId.toString()) {
-        throw new Error("Lời mời không hợp lệ");
-    }
-
-    invitation.status = status;
-    await invitation.save();
-
-    if (status === "accepted") {
-        const conversation = await Conversation.findById(invitation.conversationId);
-        if (!conversation.members.includes(userId)) {
-            conversation.members.push(userId);
-            await conversation.save();
+exports.sendGroupInvite = async (conversationId, senderId, recipientId) => {
+    try {
+        // Tìm cuộc trò chuyện (nhóm) theo conversationId
+        const conversation = await Conversation.findById(conversationId);
+        if (!conversation) {
+            throw new Error("Nhóm không tồn tại.");
         }
-    }
-    return invitation;
-};
 
-// Ghi nhận hoạt động nhóm
-exports.logGroupActivity = async (conversationId, activityType, performedBy, affectedUser, additionalInfo = '') => {
-    const activity = new GroupActivity({
-        conversationId,
-        activityType,
-        performedBy,
-        affectedUser,
-        additionalInfo,
-    });
-    await activity.save();
+        // Kiểm tra xem recipientId đã là thành viên của nhóm chưa
+        if (conversation.members.includes(recipientId)) {
+            throw new Error("Người nhận đã là thành viên của nhóm.");
+        }
+
+        // Kiểm tra nếu đã có lời mời đang chờ
+        const existingInvitation = await Invitation.findOne({
+            groupId: conversationId,
+            recipientId: recipientId,
+            status: 'pending',
+        });
+        if (existingInvitation) {
+            throw new Error("Lời mời đang chờ xử lý.");
+        }
+
+        // Tạo lời mời tham gia nhóm
+        const invitation = await Invitation.create({
+            groupId: conversationId,
+            senderId: senderId,
+            recipientId: recipientId,
+            status: 'pending',
+        });
+
+        // Trả về lời mời đã được gửi
+        return invitation;
+
+    } catch (error) {
+        console.error("Lỗi khi gửi lời mời tham gia nhóm:", error);
+        throw new Error(`Lỗi khi gửi lời mời tham gia nhóm: ${error.message}`);
+    }
+};
+exports.handleGroupInvite = async (invitationId, userId, status) => {
+    try {
+        // Tìm lời mời theo ID
+        const invitation = await Invitation.findById(invitationId);
+        console.log(invitation)
+        if (!invitation || invitation.recipientId.toString() !== userId.toString()) {
+            throw new Error("Lời mời không hợp lệ");
+        }
+
+        // Cập nhật trạng thái lời mời
+        invitation.status = status;
+        await invitation.save();
+
+        // Nếu lời mời được chấp nhận, thêm người dùng vào nhóm
+        if (status === "accepted") {
+            const conversation = await Conversation.findById(invitation.groupId);
+            if (!conversation) {
+                throw new Error("Nhóm không tồn tại");
+            }
+
+            // Kiểm tra nếu người dùng chưa là thành viên của nhóm
+            if (!conversation.members.includes(userId)) {
+                conversation.members.push(userId);
+                await conversation.save();
+            }
+        }
+
+        // Trả về lời mời đã cập nhật
+        return invitation;
+    } catch (error) {
+        console.error("Lỗi khi xử lý lời mời:", error);
+        throw new Error(`Lỗi khi xử lý lời mời: ${error.message}`);
+    }
 };
 
 // Lấy lịch sử hoạt động nhóm
@@ -285,20 +413,3 @@ exports.changeMemberRole = async (conversationId, adminId, memberId) => {
 };
 
 
-// Thêm admin vào nhóm
-exports.addAdminToGroup = async (conversationId, userId) => {
-    const conversation = await Conversation.findById(conversationId);
-    if (!conversation.admins.includes(userId)) {
-        conversation.admins.push(userId);
-        await conversation.save();
-    }
-};
-
-// Xóa admin khỏi nhóm
-exports.removeAdminFromGroup = async (conversationId, userId) => {
-    const conversation = await Conversation.findById(conversationId);
-    if (conversation.admins.includes(userId)) {
-        conversation.admins.pull(userId);
-        await conversation.save();
-    }
-};

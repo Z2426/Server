@@ -1,4 +1,15 @@
 const GroupService = require("../services/groupService");
+exports.unblockMember = async (req, res) => {
+    const { conversationId, adminId, memberId } = req.body;
+    try {
+        const updatedGroup = await GroupService.unblockMemberInGroup(conversationId, adminId, memberId);
+        res.status(200).json({ message: "Thành viên đã được gỡ chặn.", data: updatedGroup });
+    } catch (error) {
+        console.error("Lỗi khi gỡ chặn thành viên:", error);
+        res.status(500).json({ message: "Đã có lỗi xảy ra khi gỡ chặn thành viên." });
+    }
+};
+
 exports.createGroup = async (req, res) => {
     const { userId, groupName, groupDescription, members, isPrivate } = req.body;
 
@@ -94,17 +105,7 @@ exports.isAdmin = async (req, res) => {
     }
 };
 
-exports.searchMessagesInGroup = async (req, res) => {
-    const { conversationId } = req.params;
-    const { query } = req.query;
-    try {
-        const messages = await GroupService.searchMessagesInGroup(conversationId, query);
-        res.status(200).json({ message: "Tìm kiếm tin nhắn thành công.", data: messages });
-    } catch (error) {
-        console.error("Lỗi khi tìm kiếm tin nhắn trong nhóm:", error);
-        res.status(500).json({ message: "Đã có lỗi xảy ra khi tìm kiếm tin nhắn." });
-    }
-};
+
 
 exports.sendGroupInvite = async (req, res) => {
     const { conversationId, senderId, recipientId } = req.body;
@@ -118,9 +119,9 @@ exports.sendGroupInvite = async (req, res) => {
 };
 
 exports.handleGroupInvite = async (req, res) => {
-    const { invitationId, userId, response } = req.body;
+    const { invitationId, userId, status } = req.body;
     try {
-        const result = await GroupService.handleGroupInvite(invitationId, userId, response);
+        const result = await GroupService.handleGroupInvite(invitationId, userId, status);
         res.status(200).json({ message: "Đã xử lý lời mời tham gia nhóm.", data: result });
     } catch (error) {
         console.error("Lỗi khi xử lý lời mời:", error);
@@ -128,32 +129,19 @@ exports.handleGroupInvite = async (req, res) => {
     }
 };
 
-exports.addAdminToGroup = async (req, res) => {
-    const { conversationId, adminId, userIdToPromote } = req.body;
-    try {
-        const updatedGroup = await GroupService.addAdminToGroup(conversationId, adminId, userIdToPromote);
-        res.status(200).json({ message: "Đã thêm quản trị viên mới vào nhóm.", data: updatedGroup });
-    } catch (error) {
-        console.error("Lỗi khi thêm quản trị viên:", error);
-        res.status(500).json({ message: "Đã có lỗi xảy ra khi thêm quản trị viên." });
-    }
-};
-
-exports.removeAdminFromGroup = async (req, res) => {
-    const { conversationId, adminId, userIdToDemote } = req.body;
-    try {
-        const updatedGroup = await GroupService.removeAdminFromGroup(conversationId, adminId, userIdToDemote);
-        res.status(200).json({ message: "Đã xóa quyền quản trị viên khỏi nhóm.", data: updatedGroup });
-    } catch (error) {
-        console.error("Lỗi khi xóa quyền quản trị viên:", error);
-        res.status(500).json({ message: "Đã có lỗi xảy ra khi xóa quyền quản trị viên." });
-    }
-};
 
 // Gửi tin nhắn trong nhóm
+// Gửi tin nhắn trong nhóm
 exports.sendGroupMessage = async (req, res) => {
+    const { senderId, conversationId, content, file_url } = req.body;
+
     try {
-        const { senderId, conversationId, content, file_url } = req.body;
+        // Kiểm tra dữ liệu đầu vào
+        if (!senderId || !conversationId || !content) {
+            return res.status(400).json({
+                message: "Thiếu thông tin cần thiết (senderId, conversationId, content).",
+            });
+        }
 
         // Gọi service để gửi tin nhắn trong nhóm
         const newMessage = await GroupService.sendGroupMessage(conversationId, senderId, content, file_url);
@@ -164,9 +152,11 @@ exports.sendGroupMessage = async (req, res) => {
         });
     } catch (error) {
         console.error("Lỗi khi gửi tin nhắn nhóm:", error);
+
+        // Trả về lỗi chi tiết hơn nếu có thể
         return res.status(500).json({
             message: "Đã có lỗi xảy ra khi gửi tin nhắn",
-            error: error.message,
+            error: error.message, // Trả về chi tiết lỗi cho client
         });
     }
 };
