@@ -11,7 +11,7 @@ const app = express();
 const cors = require('cors');
 // Cấu hình CORS
 const corsOptions = {
-  origin: [`${process.env.URL_POST_SERVICE}`, `${process.env.URL_AUTH_SERVICE}`], // Cho phép từ frontend
+  origin: [`${process.env.URL_POST_SERVICE}`, `${process.env.URL_AUTH_SERVICE}`, `${process.env.URL_CLIENT}`],// Cho phép từ frontend
   methods: ['GET', 'POST', 'PUT', 'DELETE'], // Các phương thức được phép
   allowedHeaders: ['Content-Type', 'Authorization'], // Các header cho phép
 };
