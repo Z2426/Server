@@ -11,4 +11,4 @@ const groupActivitySchema = new Schema({
     additionalInfo: { type: String, default: '' }, // Thông tin bổ sung (ví dụ: lý do thay đổi)
 });
 
-const GroupActivity = mongoose.model('GroupActivity', groupActivitySchema);
+module.exports = mongoose.model("GroupActivity", groupActivitySchema);

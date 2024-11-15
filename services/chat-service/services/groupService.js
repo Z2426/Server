@@ -2,134 +2,231 @@ const Conversation = require("../models/Conversation");
 const Message = require("../models/Message");
 const GroupActivity = require("../models/GroupActivity");
 const Invitation = require("../models/Invitation");
-const redis = require('redis');
+const { redisClient, connectToRedis } = require("../shared/redis/redisClient");
+connectToRedis();
 
-const redisClient = redis.createClient({
-    url: 'redis://redis:6379'
-});
-// Gửi tin nhắn nhóm
-// Gửi tin nhắn nhóm (có thể kèm tệp)
-exports.sendGroupMessage = async (senderId, groupId, content, file) => {
-    const timestamp = Date.now(); // Lấy thời gian hiện tại (milliseconds)
+exports.createGroup = async (userId, groupName, groupDescription, members, isPrivate) => {
+    // Kiểm tra kiểu dữ liệu của members
+    console.log("Kiểu dữ liệu của members trong service:", typeof members);
+    console.log("Dữ liệu members trong service:", members);
 
-    // Tìm cuộc hội thoại nhóm
-    let conversation;
-    try {
-        conversation = await Conversation.findById(groupId);
-        if (!conversation || conversation.type !== "group") return null;
-    } catch (err) {
-        console.error("Lỗi khi tìm cuộc trò chuyện nhóm:", err);
-        return null;
+    // Kiểm tra xem members có phải là mảng không
+    if (!Array.isArray(members)) {
+        throw new Error("Members phải là một mảng.");
     }
 
-    // Lưu tin nhắn vào MongoDB (có thể kèm theo file)
-    let newMessage;
-    try {
-        const messageData = {
-            conversationId: conversation._id,
-            senderId,
-            text: content,
-            timestamp, // Thêm thời gian vào MongoDB
-        };
-
-        // Nếu có tệp, lưu URL tệp vào MongoDB
-        if (file) {
-            messageData.file_url = file.path; // Lưu đường dẫn tệp (hoặc URL nếu sử dụng dịch vụ lưu trữ như S3, Cloudinary)
-        }
-
-        newMessage = await Message.create(messageData);
-    } catch (err) {
-        console.error("Lỗi khi lưu tin nhắn vào MongoDB:", err);
-        throw new Error("Không thể lưu tin nhắn.");
+    // Kiểm tra nếu số lượng thành viên không đủ ít nhất 3 (bao gồm người tạo nhóm)
+    if (members.length + 1 < 3) {
+        throw new Error("Nhóm phải có ít nhất 3 thành viên.");
     }
 
-    // Dữ liệu tin nhắn để phát qua Redis
-    const messageDataToPublish = {
-        type: 'group',
-        senderId,
-        groupId,
-        message: newMessage,
-        timestamp, // Thêm thời gian vào Redis
-    };
-
-    // Lọc các thành viên trong nhóm và kiểm tra trạng thái online
-    for (const memberId of conversation.members) {
-        let status;
-        try {
-            status = await redisClient.get(`user:${memberId}:status`);
-        } catch (err) {
-            console.error("Lỗi khi truy vấn Redis:", err);
-            status = null;
-        }
-
-        if (status === "online") {
-            // Nếu thành viên online, phát tin nhắn qua Redis
-            redisClient.publish(`chatgroup:${groupId}:${memberId}`, JSON.stringify(messageDataToPublish));
-        }
-    }
-
-    return newMessage;
-};
-
-// Tạo nhóm
-exports.createGroup = async (userId, groupName, groupDescription, isPrivate) => {
-    const conversation = new Conversation({
+    // Tạo nhóm mới
+    const group = new Conversation({
         name: groupName,
         description: groupDescription,
         isPrivate,
-        members: [userId], // Người tạo nhóm là thành viên đầu tiên
-        admins: [userId],  // Người tạo nhóm là quản trị viên đầu tiên
+        members: [userId, ...members],  // Bao gồm người tạo nhóm và các thành viên
+        admins: [userId],
         createdBy: userId,
+        isGroup: true,
+        type: "group"
     });
-    await conversation.save();
-    return conversation;
+
+    // Lưu nhóm vào cơ sở dữ liệu
+    await group.save();
+
+    // Ghi lại hoạt động tạo nhóm
+    const groupActivity = new GroupActivity({
+        groupId: group._id,           // ID nhóm vừa tạo
+        activityType: 'update_group', // Loại hoạt động (tạo nhóm)
+        performedBy: userId,          // Người tạo nhóm
+        affectedUser: userId,         // Người bị ảnh hưởng (thường là chính người tạo nhóm)
+        timestamp: new Date(),        // Thời gian hoạt động
+        additionalInfo: 'Group created successfully', // Thông tin bổ sung (nếu cần)
+    });
+    await groupActivity.save()
+    // Trả về thông tin nhóm mới
+    return group;
 };
 
+
+// Gửi tin nhắn vào nhóm
+exports.sendGroupMessage = async (conversationId, senderId, content, fileUrl) => {
+    try {
+        // Kiểm tra nếu nhóm tồn tại
+        const conversation = await Conversation.findById(conversationId);
+        if (!conversation) {
+            throw new Error("Cuộc trò chuyện không tồn tại.");
+        }
+
+        // Kiểm tra nếu cuộc trò chuyện là nhóm
+        if (conversation.type !== 'group') {
+            throw new Error("Đây không phải là cuộc trò chuyện nhóm.");
+        }
+
+        // Tạo một đối tượng tin nhắn
+        const newMessage = new Message({
+            conversationId,
+            senderId,
+            text: content,
+            file_url: fileUrl, // Lưu URL ảnh
+            timestamp: new Date(),
+        });
+
+        // Lưu tin nhắn vào cơ sở dữ liệu
+        await newMessage.save();
+
+        // Cập nhật thông tin tin nhắn cuối cùng trong nhóm
+        conversation.lastMessage = {
+            content,
+            senderId,
+            timestamp: new Date(),
+            file_url: fileUrl, // Cập nhật URL ảnh trong tin nhắn cuối cùng
+        };
+        await conversation.save();
+
+        // Cập nhật số lượng tin nhắn chưa đọc cho các thành viên khác
+        for (const memberId of conversation.members) {
+            if (memberId.toString() !== senderId.toString()) {
+                // Kiểm tra nếu `unreadCounts` là một mảng hợp lệ
+                if (!Array.isArray(conversation.unreadCounts)) {
+                    conversation.unreadCounts = [];
+                }
+
+                const unreadCount = conversation.unreadCounts.find(
+                    (entry) => entry.userId.toString() === memberId.toString()
+                );
+
+                if (unreadCount) {
+                    unreadCount.count += 1; // Tăng số lượng tin nhắn chưa đọc
+                } else {
+                    conversation.unreadCounts.push({ userId: memberId, count: 1 });
+                }
+            }
+        }
+
+        await conversation.save();
+
+        // Lưu hoạt động nhóm (nếu có thể dùng để theo dõi hoạt động gửi tin nhắn)
+        const groupActivity = new GroupActivity({
+            groupId: conversationId,
+            activityType: 'send_message',
+            performedBy: senderId,
+            affectedUser: senderId, // Tin nhắn gửi bởi người dùng
+            additionalInfo: content,
+        });
+        await groupActivity.save();
+
+        return { success: true, message: "Tin nhắn đã được gửi thành công." };
+    } catch (error) {
+        console.error("Lỗi khi gửi tin nhắn:", error);
+        throw new Error(`Lỗi khi gửi tin nhắn: ${error.message}`);
+    }
+};
+// Thêm thành viên vào nhóm
+exports.addMemberToGroup = async (userId, groupId, newMembers) => {
+    try {
+        // Lấy thông tin nhóm từ cơ sở dữ liệu
+        const group = await Conversation.findById(groupId);
+        if (!group) {
+            throw new Error("Nhóm không tồn tại");
+        }
+
+        // Thêm các thành viên mới vào nhóm
+        group.members.push(...newMembers);
+
+        // Lưu lại thông tin nhóm
+        await group.save();
+
+        // Lưu hoạt động nhóm (GroupActivity)
+        newMembers.forEach(async (newMemberId) => {
+            const groupActivity = new GroupActivity({
+                groupId,
+                activityType: 'add_member',
+                performedBy: userId, // Người thực hiện hành động (admin)
+                affectedUser: newMemberId, // Thành viên bị ảnh hưởng (thành viên mới được thêm)
+                additionalInfo: "Thêm thành viên vào nhóm",
+            });
+            await groupActivity.save();
+        });
+
+        return { success: true, message: "Thêm thành viên thành công" };
+    } catch (error) {
+        throw new Error(`Lỗi khi thêm thành viên vào nhóm: ${error.message}`);
+    }
+};
 // Xóa thành viên khỏi nhóm
-exports.removeMemberFromGroup = async (conversationId, adminId, memberId) => {
+exports.removeMemberFromGroup = async (conversationId, adminId, memberId, reason = '') => {
+    // Tìm nhóm theo conversationId
     const conversation = await Conversation.findById(conversationId);
-    if (conversation.admins.includes(adminId)) {
-        const memberIndex = conversation.members.indexOf(memberId);
-        if (memberIndex !== -1) {
-            conversation.members.splice(memberIndex, 1);
-            await conversation.save();
-            return conversation;
-        }
-        throw new Error("Không tìm thấy thành viên trong nhóm");
+    if (!conversation) {
+        throw new Error("Không tìm thấy nhóm");
     }
-    throw new Error("Bạn không có quyền xóa thành viên");
+
+    // Kiểm tra xem adminId có quyền quản trị trong nhóm không
+    if (!conversation.admins.includes(adminId)) {
+        throw new Error("Không có quyền xóa thành viên");
+    }
+
+    // Kiểm tra xem memberId có phải là thành viên của nhóm không
+    const memberIndex = conversation.members.indexOf(memberId);
+    if (memberIndex !== -1) {
+        // Xóa thành viên khỏi nhóm
+        conversation.members.splice(memberIndex, 1);
+        await conversation.save();
+
+        // Ghi lại hoạt động xóa thành viên vào GroupActivity
+        await GroupActivity.create({
+            groupId: conversationId, // ID của nhóm
+            activityType: 'remove_member', // Loại hoạt động: xóa thành viên
+            performedBy: adminId, // Người thực hiện hành động (Admin)
+            affectedUser: memberId, // Thành viên bị xóa
+            timestamp: new Date(), // Thời gian hành động
+            additionalInfo: reason, // Lý do xóa (nếu có)
+        });
+
+        return conversation; // Trả về nhóm sau khi cập nhật
+    }
+
+    throw new Error("Không tìm thấy thành viên trong nhóm");
 };
 
-// Thay đổi quyền thành viên
-exports.changeMemberRole = async (conversationId, adminId, memberId, newRole) => {
+// Gửi lời mời vào nhóm
+exports.sendGroupInvite = async (senderId, conversationId, recipientId) => {
     const conversation = await Conversation.findById(conversationId);
-    if (conversation.admins.includes(adminId)) {
-        const member = conversation.members.find(member => member.userId.toString() === memberId.toString());
-        if (member) {
-            member.role = newRole;
-            await conversation.save();
-            return conversation;
-        }
-        throw new Error("Thành viên không tồn tại trong nhóm");
+    if (!conversation || conversation.members.includes(recipientId)) {
+        throw new Error("Lời mời không hợp lệ");
     }
-    throw new Error("Bạn không có quyền thay đổi quyền của thành viên");
+    const invitation = await Invitation.create({
+        conversationId,
+        senderId,
+        recipientId,
+        status: 'pending',
+    });
+    return invitation;
 };
 
-// Chặn thành viên khỏi nhóm
-exports.blockMemberInGroup = async (conversationId, adminId, memberId) => {
-    const conversation = await Conversation.findById(conversationId);
-    if (conversation.admins.includes(adminId)) {
-        if (conversation.members.includes(memberId)) {
-            conversation.blockedMembers.push(memberId);
-            await conversation.save();
-            return conversation;
-        }
-        throw new Error("Thành viên không tồn tại trong nhóm");
+// Xử lý lời mời vào nhóm
+exports.handleGroupInvite = async (userId, invitationId, status) => {
+    const invitation = await Invitation.findById(invitationId);
+    if (!invitation || invitation.recipientId.toString() !== userId.toString()) {
+        throw new Error("Lời mời không hợp lệ");
     }
-    throw new Error("Bạn không có quyền chặn thành viên");
+
+    invitation.status = status;
+    await invitation.save();
+
+    if (status === "accepted") {
+        const conversation = await Conversation.findById(invitation.conversationId);
+        if (!conversation.members.includes(userId)) {
+            conversation.members.push(userId);
+            await conversation.save();
+        }
+    }
+    return invitation;
 };
 
-// Hàm ghi nhận hoạt động nhóm
+// Ghi nhận hoạt động nhóm
 exports.logGroupActivity = async (conversationId, activityType, performedBy, affectedUser, additionalInfo = '') => {
     const activity = new GroupActivity({
         conversationId,
@@ -141,154 +238,67 @@ exports.logGroupActivity = async (conversationId, activityType, performedBy, aff
     await activity.save();
 };
 
-// Thêm thành viên vào nhóm và ghi nhận hoạt động
-exports.addMemberToGroup = async (conversationId, adminId, newMemberId) => {
-    const conversation = await Conversation.findById(conversationId);
-    if (conversation.admins.includes(adminId)) {
-        if (!conversation.members.includes(newMemberId)) {
-            conversation.members.push(newMemberId);
-            await conversation.save();
-
-            // Ghi nhận hoạt động thêm thành viên
-            await exports.logGroupActivity(conversationId, 'add_member', adminId, newMemberId, 'Thêm thành viên vào nhóm');
-
-            return conversation;
-        }
-        throw new Error("Thành viên đã có trong nhóm");
-    }
-    throw new Error("Bạn không có quyền thêm thành viên vào nhóm");
-};
-
 // Lấy lịch sử hoạt động nhóm
-exports.getGroupActivityHistory = async (conversationId) => {
-    const activities = await GroupActivity.find({ conversationId }).sort({ timestamp: -1 }); // Sắp xếp theo thời gian giảm dần
-    return activities;
+exports.getGroupActivityHistory = async (groupId) => {
+    return await GroupActivity.find({ groupId }).sort({ timestamp: -1 });
 };
-
 // Kiểm tra quyền quản trị viên
-exports.isAdmin = (userId, conversationId) => {
-    const conversation = Conversation.findById(conversationId);
-    return conversation.admins.includes(userId);
+exports.isAdmin = async (userId, conversationId) => {
+    const conversation = await Conversation.findById(conversationId);
+    return conversation && conversation.admins.includes(userId);
 };
-
-
-// Gửi lời mời vào nhóm
-exports.sendGroupInvite = async (senderId, conversationId, recipientId) => {
-    try {
-        // Kiểm tra nếu người nhận đã là thành viên nhóm
-        const conversation = await Conversation.findById(conversationId);
-        if (!conversation) {
-            throw new Error("Nhóm không tồn tại");
-        }
-        if (conversation.members.includes(recipientId)) {
-            throw new Error("Người dùng đã là thành viên nhóm");
-        }
-
-        // Tạo lời mời
-        const invitation = await Invitation.create({
-            conversationId,
-            senderId,
-            recipientId,
-            status: 'pending',
-        });
-
-        // Phát thông báo lời mời qua Redis (nếu người nhận online)
-        const status = await redisClient.get(`user:${recipientId}:status`);
-        if (status === "online") {
-            const inviteData = {
-                type: 'group-invite',
-                senderId,
-                conversationId,
-                invitationId: invitation._id,
-            };
-            redisClient.publish(`chatuser:${recipientId}`, JSON.stringify(inviteData));
-        }
-
-        return invitation;
-    } catch (error) {
-        console.error("Lỗi khi gửi lời mời:", error);
-        throw error;
+//change quyen 
+// Service để thay đổi quyền thành viên
+exports.changeMemberRole = async (conversationId, adminId, memberId) => {
+    // Kiểm tra xem adminId có phải là admin của nhóm không
+    const isAdminResult = await exports.isAdmin(adminId, conversationId);
+    if (!isAdminResult) {
+        throw new Error('You do not have permission to change roles.');
     }
-};
 
-// Xử lý lời mời vào nhóm
-exports.handleGroupInvite = async (userId, invitationId, status) => {
-    try {
-        // Kiểm tra lời mời
-        const invitation = await Invitation.findById(invitationId);
-        if (!invitation) {
-            throw new Error("Lời mời không tồn tại");
-        }
-
-        // Kiểm tra người nhận có phải là người được mời không
-        if (invitation.recipientId.toString() !== userId.toString()) {
-            throw new Error("Bạn không phải là người nhận lời mời này");
-        }
-
-        // Cập nhật trạng thái lời mời
-        invitation.status = status;
-        await invitation.save();
-
-        if (status === "accepted") {
-            // Thêm người dùng vào nhóm nếu chấp nhận
-            const conversation = await Conversation.findById(invitation.conversationId);
-            if (!conversation.members.includes(userId)) {
-                conversation.members.push(userId);
-                await conversation.save();
-
-                // Phát thông báo cho nhóm nếu người dùng tham gia thành công
-                redisClient.publish(`chatgroup:${conversation._id}`, JSON.stringify({
-                    type: 'new-member',
-                    userId,
-                }));
-            }
-        }
-
-        return invitation;
-    } catch (error) {
-        console.error("Lỗi khi xử lý lời mời:", error);
-        throw error;
+    // Tìm nhóm theo conversationId
+    const group = await Conversation.findById(conversationId);
+    if (!group) {
+        throw new Error('Group not found.');
     }
+
+    // Kiểm tra nếu memberId có trong nhóm
+    if (!group.members.includes(memberId)) {
+        throw new Error('Member not found in this group.');
+    }
+
+    // Kiểm tra nếu memberId đã là admin hay chưa
+    const isAlreadyAdmin = group.admins.includes(memberId);
+
+    // Nếu là admin, xóa khỏi danh sách admin; nếu không có, thêm vào danh sách admin
+    if (isAlreadyAdmin) {
+        // Xóa khỏi danh sách admins
+        group.admins = group.admins.filter(admin => admin.toString() !== memberId);
+    } else {
+        // Thêm vào danh sách admins
+        group.admins.push(memberId);
+    }
+
+    // Lưu lại nhóm đã cập nhật
+    const updatedGroup = await group.save();
+    return updatedGroup;
 };
+
 
 // Thêm admin vào nhóm
 exports.addAdminToGroup = async (conversationId, userId) => {
-    try {
-        const conversation = await Conversation.findById(conversationId);
-        if (!conversation) {
-            throw new Error("Nhóm không tồn tại");
-        }
-
-        // Kiểm tra nếu người dùng đã là admin
-        if (!conversation.admins.includes(userId)) {
-            conversation.admins.push(userId); // Thêm người dùng vào danh sách admin
-            await conversation.save();
-            console.log(`Đã thêm người dùng với ID ${userId} làm admin nhóm.`);
-        } else {
-            console.log("Người dùng này đã là admin của nhóm.");
-        }
-    } catch (error) {
-        console.error("Lỗi khi thêm admin:", error);
+    const conversation = await Conversation.findById(conversationId);
+    if (!conversation.admins.includes(userId)) {
+        conversation.admins.push(userId);
+        await conversation.save();
     }
 };
 
 // Xóa admin khỏi nhóm
 exports.removeAdminFromGroup = async (conversationId, userId) => {
-    try {
-        const conversation = await Conversation.findById(conversationId);
-        if (!conversation) {
-            throw new Error("Nhóm không tồn tại");
-        }
-
-        // Kiểm tra nếu người dùng là admin của nhóm
-        if (conversation.admins.includes(userId)) {
-            conversation.admins.pull(userId); // Xóa người dùng khỏi danh sách admin
-            await conversation.save();
-            console.log(`Đã xóa người dùng với ID ${userId} khỏi danh sách admin nhóm.`);
-        } else {
-            console.log("Người dùng này không phải là admin của nhóm.");
-        }
-    } catch (error) {
-        console.error("Lỗi khi xóa admin:", error);
+    const conversation = await Conversation.findById(conversationId);
+    if (conversation.admins.includes(userId)) {
+        conversation.admins.pull(userId);
+        await conversation.save();
     }
 };
