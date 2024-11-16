@@ -1,6 +1,7 @@
 const express = require('express');
 const connectDB = require('./shared/db/db.js');
 const postRoutes = require('./routes/postRoutes.js');
+const statRoutes = require('./routes/reportRoutes.js')
 const cors = require('cors');
 require('dotenv').config();
 const app = express();
@@ -20,6 +21,7 @@ const corsOptions = {
 // Sử dụng middleware
 app.use(cors(corsOptions));
 app.use('/api/posts', postRoutes);
+app.use('/api/stat', statRoutes);
 const PORT = process.env.POST_SERVICE_PORT || 3002;
 app.listen(PORT, () => {
   console.log(`Post service running on port  ${PORT}`);

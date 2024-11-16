@@ -41,13 +41,6 @@ const PostSchema = new mongoose.Schema({
     categories: [{
         type: String
     }], // Loại hoặc danh mục của bài viết
-    reports: [
-        {
-            userId: { type: String },
-            reason: { type: String },
-            createdAt: { type: Date, default: Date.now },
-        }
-    ],
     createdAt: {
         type: Date,
         default: Date.now
