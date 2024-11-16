@@ -197,7 +197,7 @@ exports.getPost = async (req, res) => {
   const { postId } = req.params;
   console.log(postId)
   try {
-    const post = await postService.getPostWithUserDetails(postId);
+    const post = await postService.getPostById(postId);
     return res.status(200).json(post);
   } catch (error) {
     return res.status(500).json({ message: error.message });

@@ -35,7 +35,7 @@ router.put('/:postId/viewed', authMiddleware.verifyTokenMiddleware, postControll
 // Lay cac bai viet cua user
 router.get('/user/:userId', authMiddleware.verifyTokenMiddleware, postController.getUserPosts);
 // // // Lấy chi tiết bài viết theo ID
-//router.get('/:postId', authMiddleware.verifyTokenMiddleware, postController.getPost);
+router.get('/:postId', authMiddleware.verifyTokenMiddleware, postController.getPost);
 // // // Cập nhật bài viết
 router.put('/:postId', authMiddleware.verifyTokenMiddleware, postController.updatePost);
 // // // Xóa bài viết

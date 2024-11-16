@@ -2,6 +2,21 @@ const Post = require('../models/Post');
 const Report = require('../models/reportModel.js')
 const mongoose = require('mongoose');
 const requestWithCircuitBreaker = require('../shared/utils/circuitBreaker.js');
+
+// Service lấy thông tin bài post theo id
+exports.getPostById = async (postId) => {
+  try {
+    // Tìm bài post theo id
+    const post = await Post.findById(postId)
+    if (!post) {
+      throw new Error('Post not found');
+    }
+    return post;
+  } catch (error) {
+    throw error; // Ném lỗi ra ngoài để controller xử lý
+  }
+};
+
 const axios = require('axios'); // Import axios
 // Xóa bài post nếu vi phạm nguyên tắc
 exports.deletePostIfViolating = async (postId) => {
