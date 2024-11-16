@@ -183,7 +183,8 @@ exports.markPostAsViewed = async (req, res) => {
 // Controller lấy danh sách bài post của người dùng
 exports.getUserPosts = async (req, res) => {
   try {
-    const { userId } = req.body.user;
+    const userId = req.params.userId
+    console.log(userId)
     const { page = 1, limit = 10 } = req.query; // Dùng query params để phân trang
     const posts = await postService.getUserPosts(userId, parseInt(page), parseInt(limit));
     res.status(200).json(posts);

@@ -33,7 +33,7 @@ router.put('/:postId/like', authMiddleware.verifyTokenMiddleware, postController
 // danh sau bai viet da xem
 router.put('/:postId/viewed', authMiddleware.verifyTokenMiddleware, postController.markPostAsViewed);
 // Lay cac bai viet cua user
-router.get('/user', authMiddleware.verifyTokenMiddleware, postController.getUserPosts);
+router.get('/user/:userId', authMiddleware.verifyTokenMiddleware, postController.getUserPosts);
 // // // Lấy chi tiết bài viết theo ID
 //router.get('/:postId', authMiddleware.verifyTokenMiddleware, postController.getPost);
 // // // Cập nhật bài viết

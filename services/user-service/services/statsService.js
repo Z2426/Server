@@ -20,39 +20,58 @@ exports.getUserStats = async () => {
     }
 };
 // Service to get user registration statistics by time period (day, week, month)
+// Service to get user registration statistics by time period (day, week, month)
+// Service to get user registration statistics by time period (day, week, month)
 exports.getUserRegistrationStats = async (timePeriod = 'day') => {
-    let match = {};  // Điều kiện lọc dữ liệu theo thời gian
+    const now = new Date(); // Ngày hiện tại
+    let groupBy, startDate;
 
-    // Xử lý các trường hợp "ngày", "tuần", "tháng"
-    if (timePeriod === 'week') {
-        match.createdAt = {
-            $gte: moment().subtract(1, 'weeks').startOf('week').toDate(),  // Tính từ đầu tuần hiện tại
+    if (timePeriod === 'day') {
+        // Thống kê theo ngày trong tháng hiện tại
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1); // Đầu tháng hiện tại
+        groupBy = { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }; // Nhóm theo ngày
+    } else if (timePeriod === 'week') {
+        // Thống kê tối đa 12 tuần
+        startDate = new Date(now);
+        startDate.setDate(now.getDate() - (now.getDay() + 1) - 7 * 11); // 12 tuần trước
+        startDate.setHours(0, 0, 0, 0); // Đặt thời gian đầu ngày
+        groupBy = {
+            $dateToString: { format: "%Y-%U", date: "$createdAt" } // Nhóm theo tuần (năm-tuần)
         };
     } else if (timePeriod === 'month') {
-        match.createdAt = {
-            $gte: moment().subtract(1, 'months').startOf('month').toDate(),  // Tính từ đầu tháng hiện tại
-        };
+        // Thống kê tối đa 12 tháng trước đó
+        startDate = new Date(now.getFullYear(), now.getMonth() - 11, 1); // 12 tháng trước
+        groupBy = { $dateToString: { format: "%Y-%m", date: "$createdAt" } }; // Nhóm theo tháng
     } else {
-        // Mặc định là thống kê theo ngày
-        match.createdAt = {
-            $gte: moment().startOf('day').toDate(), // Tính từ đầu ngày hiện tại
-        };
+        throw new Error("Invalid timePeriod. Use 'day', 'week', or 'month'.");
     }
 
-    // Tạo truy vấn để nhóm số người dùng đăng ký theo ngày
-    const result = await Users.aggregate([
-        { $match: match },  // Lọc dữ liệu theo khoảng thời gian
-        {
-            $group: {
-                _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },  // Nhóm theo ngày tháng
-                count: { $sum: 1 }  // Đếm số lượng người dùng trong mỗi nhóm
+    try {
+        // Truy vấn dữ liệu thống kê
+        const result = await Users.aggregate([
+            {
+                $match: {
+                    createdAt: { $gte: startDate } // Lọc bản ghi từ `startDate` trở đi
+                }
+            },
+            {
+                $group: {
+                    _id: groupBy, // Nhóm theo ngày, tuần, hoặc tháng
+                    count: { $sum: 1 } // Đếm số lượng người dùng trong mỗi nhóm
+                }
+            },
+            {
+                $sort: { _id: 1 } // Sắp xếp kết quả theo thời gian tăng dần
             }
-        },
-        { $sort: { "_id": 1 } }  // Sắp xếp theo ngày (tăng dần)
-    ]);
+        ]);
 
-    return result;  // Trả về kết quả
+        return result; // Trả về kết quả
+    } catch (error) {
+        console.error("Error fetching user registration stats:", error);
+        throw new Error("Error fetching user registration stats");
+    }
 };
+
 
 // Service to get the number of users grouped by gender
 exports.getGenderStats = async () => {
@@ -88,9 +107,16 @@ exports.getAgeStats = async () => {
         const ageStats = await Users.aggregate([
             {
                 $addFields: {
+                    birthDate: {
+                        $cond: [
+                            { $eq: [{ $type: "$birthDate" }, "string"] }, // Nếu birthDate là chuỗi
+                            { $toDate: "$birthDate" },                  // Chuyển đổi thành Date
+                            "$birthDate"                               // Ngược lại giữ nguyên
+                        ]
+                    },
                     age: {
                         $subtract: [
-                            { $year: new Date() },  // Năm hiện tại
+                            new Date().getFullYear(), // Năm hiện tại
                             { $year: "$birthDate" }  // Năm sinh của người dùng
                         ]
                     }
@@ -98,23 +124,23 @@ exports.getAgeStats = async () => {
             },
             {
                 $bucket: {
-                    groupBy: "$age",  // Nhóm theo độ tuổi
-                    boundaries: [0, 18, 25, 35, 45, 55, 65, 100],  // Các nhóm độ tuổi
-                    default: "Others",  // Nếu ngoài phạm vi thì nhóm là "Others"
+                    groupBy: "$age", // Nhóm theo độ tuổi
+                    boundaries: [0, 18, 25, 35, 45, 55, 65, 100], // Các nhóm độ tuổi
+                    default: "Others", // Nếu ngoài phạm vi thì nhóm là "Others"
                     output: {
-                        count: { $sum: 1 }  // Đếm số lượng người dùng trong mỗi nhóm độ tuổi
+                        count: { $sum: 1 } // Đếm số lượng người dùng trong mỗi nhóm độ tuổi
                     }
                 }
             },
             {
                 $project: {
                     _id: 0,
-                    ageGroup: "$_id",  // Tên nhóm độ tuổi
+                    ageGroup: "$_id", // Tên nhóm độ tuổi
                     count: 1
                 }
             },
             {
-                $sort: { ageGroup: 1 }  // Sắp xếp theo nhóm độ tuổi
+                $sort: { ageGroup: 1 } // Sắp xếp theo nhóm độ tuổi
             }
         ]);
 

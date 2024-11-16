@@ -2,7 +2,7 @@
 const userService = require('../services/statsService'); // Đảm bảo rằng đường dẫn đúng
 exports.getUserStatsController = async (req, res) => {
     try {
-        const stats = await userStatsService.getUserStats();
+        const stats = await userService.getUserStats();
         res.status(200).json({
             success: true,
             data: stats
