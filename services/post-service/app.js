@@ -6,9 +6,14 @@ require('dotenv').config();
 const app = express();
 app.use(express.json());
 connectDB();
-// Cấu hình CORS
+// // Cấu hình CORS
+// const corsOptions = {
+//   origin: [`${process.env.URL_POST_SERVICE}`, `${process.env.URL_AUTH_SERVICE}`], // Cho phép từ frontend
+//   methods: ['GET', 'POST', 'PUT', 'DELETE'], // Các phương thức được phép
+//   allowedHeaders: ['Content-Type', 'Authorization'], // Các header cho phép
+// };
 const corsOptions = {
-  origin: [`${process.env.URL_POST_SERVICE}`, `${process.env.URL_AUTH_SERVICE}`], // Cho phép từ frontend
+  origin: "*",  // Cho phép mọi nguồn (cổng khác nhau)
   methods: ['GET', 'POST', 'PUT', 'DELETE'], // Các phương thức được phép
   allowedHeaders: ['Content-Type', 'Authorization'], // Các header cho phép
 };

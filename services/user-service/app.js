@@ -13,8 +13,13 @@ const axios = require('axios');
 const app = express();
 const cors = require('cors');
 // Cấu hình CORS
+// const corsOptions = {
+//   origin: [`${process.env.URL_POST_SERVICE}`, `${process.env.URL_AUTH_SERVICE}`, `${process.env.URL_CLIENT}`],// Cho phép từ frontend
+//   methods: ['GET', 'POST', 'PUT', 'DELETE'], // Các phương thức được phép
+//   allowedHeaders: ['Content-Type', 'Authorization'], // Các header cho phép
+// };
 const corsOptions = {
-  origin: [`${process.env.URL_POST_SERVICE}`, `${process.env.URL_AUTH_SERVICE}`, `${process.env.URL_CLIENT}`],// Cho phép từ frontend
+  origin: "*",  // Cho phép mọi nguồn (cổng khác nhau)
   methods: ['GET', 'POST', 'PUT', 'DELETE'], // Các phương thức được phép
   allowedHeaders: ['Content-Type', 'Authorization'], // Các header cho phép
 };
