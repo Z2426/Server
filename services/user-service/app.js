@@ -2,7 +2,10 @@ const express = require('express');
 const connectDB = require('./shared/db/db.js');
 const userRoutes = require('./routes/userRoutes');
 const adminRoutes = require('./routes/adminRoutes.js')
+const statisticsRoute = require('./routes/statsRoutes.js')
 const errorHandler = require('./shared/middleware/errorHandler.js');
+const moment = require('moment');
+
 require('./shared/middleware/logRequest.js');
 require('./shared/utils/logger.js');
 require('dotenv').config();
@@ -23,6 +26,7 @@ connectDB();
 // Định nghĩa các routes
 app.use('/api/users', userRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/stat', statisticsRoute)
 // Sử dụng middleware xử lý lỗi
 app.use(errorHandler);
 // Khởi động server

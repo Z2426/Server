@@ -14,7 +14,7 @@ RUN npm cache clean --force && \
     npm install
 
 RUN npm install -g nodemon
-
+RUN npm i moment
 
 # Copy the shared folder (assuming the build context is set to the project root in docker-compose.yml)
 COPY ./shared /usr/src/app/shared

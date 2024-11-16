@@ -1,4 +1,14 @@
 const messageService = require("../services/chatPrivateService");
+exports.getConversationsByUser = async (req, res) => {
+    const { userId } = req.params;
+    try {
+        const conversations = await messageService.getConversationsByUser(userId);
+        res.status(200).json(conversations);
+    } catch (error) {
+        console.error("Error fetching conversations:", error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+};
 exports.getAllMessagesInConversation = async (req, res) => {
     const { conversationId } = req.params;  // Lấy conversationId từ params
     const { limit, page } = req.query;      // Lấy limit và page từ query string

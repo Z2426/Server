@@ -1,6 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const messageController = require("../controllers/chatController");
+// lấy danh sách hội thoại user có tham gia
+router.get("/conversations/:userId", messageController.getConversationsByUser);
 
 // Gửi tin nhắn trả lời
 router.post("/message/reply", messageController.replyToMessageController);

@@ -3,6 +3,17 @@ const Conversation = require("../models/Conversation");
 const Message = require("../models/Message");
 const { redisClient, connectToRedis } = require("../shared/redis/redisClient")
 connectToRedis()
+exports.getConversationsByUser = async (userId) => {
+    try {
+        const conversations = await Conversation.find({
+            members: userId
+        })
+        return conversations;
+    } catch (error) {
+        console.error("Error in conversation service:", error);
+        throw error;
+    }
+};
 exports.getAllMessagesInConversation = async (conversationId, limit = 20, page = 1) => {
     try {
         // Tính toán số tin nhắn cần bỏ qua cho phân trang
