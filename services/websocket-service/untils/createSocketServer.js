@@ -1,6 +1,5 @@
 const { Server } = require("socket.io");
-const { addUserSocket, removeUserSocket } = require("../shared/redis/redisHandler");
-
+const { addUserSocket, removeUserSocket, setUserStatus } = require("../shared/redis/redisHandler");
 const createSocketServer = (server) => {
     const io = new Server(server, {
         cors: {
@@ -16,8 +15,10 @@ const createSocketServer = (server) => {
 
         // Khi người dùng online
         socket.on("userOnline", async ({ userId }) => {
+            console.log("USERONLINE ", userId)
             socket.userId = userId; // Lưu userId vào socket
             await addUserSocket(userId, socket.id);  // Lưu socket.id vào Redis
+            await setUserStatus(userId, 'online')
         });
 
         // Khi người dùng offline
@@ -41,3 +42,4 @@ const createSocketServer = (server) => {
 };
 
 module.exports = createSocketServer;
+

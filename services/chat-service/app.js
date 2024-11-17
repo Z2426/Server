@@ -2,7 +2,6 @@ const express = require('express');
 const connectDB = require('./shared/db/db.js');
 const chatRoutes = require('./routes/indexRoute.js')
 const errorHandler = require('./shared/middleware/errorHandler.js')
-const { connectToRedis, subscribeToChannels, sendMessageToRedis } = require('./shared/redis/redisClient');
 require('./shared/middleware/logRequest.js')
 require('./shared/utils/circuitBreaker.js')
 require('dotenv').config();
@@ -22,13 +21,6 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 connectDB();
-try {
-    const redis = require('redis');  // Cố gắng yêu cầu module 'redis'
-    console.log("Redis module has been installed!");
-} catch (error) {
-    console.error("Redis module is not installed:", error);
-}
-
 app.use('/', chatRoutes);
 app.use(errorHandler)
 const PORT = process.env.CHAT_SERVICE_PORT || 3007;

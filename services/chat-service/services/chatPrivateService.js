@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const Conversation = require("../models/Conversation");
 const Message = require("../models/Message");
 const { redisClient, connectToRedis } = require("../shared/redis/redisClient")
+
 connectToRedis()
 exports.getConversationsByUser = async (userId) => {
     try {
@@ -19,17 +20,40 @@ exports.getAllMessagesInConversation = async (conversationId, limit = 20, page =
         // Tính toán số tin nhắn cần bỏ qua cho phân trang
         const skip = (page - 1) * limit;
 
+        // Đếm tổng số tin nhắn trong cuộc trò chuyện để tính số trang
+        const totalMessages = await Message.countDocuments({ conversationId });
+
+        // Tính toán số trang còn lại
+        const totalPages = Math.ceil(totalMessages / limit);
+        const remainingPages = totalPages - page;
+
         // Truy vấn tin nhắn trong hội thoại với phân trang
         const messages = await Message.find({ conversationId })
-            .sort({ timestamp: 1 }) // Sắp xếp theo thời gian tin nhắn
+            .sort({ timestamp: -1 }) // Sắp xếp theo thời gian tin nhắn
             .skip(skip)
             .limit(limit);
 
-        return messages;
+        return { messages, remainingPages }; // Trả về cả tin nhắn và số trang còn lại
     } catch (error) {
         throw new Error("Không thể lấy tin nhắn trong hội thoại: " + error.message);
     }
 };
+// exports.getAllMessagesInConversation = async (conversationId, limit = 20, page = 1) => {
+//     try {
+//         // Tính toán số tin nhắn cần bỏ qua cho phân trang
+//         const skip = (page - 1) * limit;
+
+//         // Truy vấn tin nhắn trong hội thoại với phân trang
+//         const messages = await Message.find({ conversationId })
+//             .sort({ timestamp: 1 }) // Sắp xếp theo thời gian tin nhắn
+//             .skip(skip)
+//             .limit(limit);
+
+//         return messages;
+//     } catch (error) {
+//         throw new Error("Không thể lấy tin nhắn trong hội thoại: " + error.message);
+//     }
+// };
 const handleRedisStatus = async (userIds) => {
     const statusPromises = userIds.map(userId => redisClient.get(`user:${userId}:status`));
     const statuses = await Promise.all(statusPromises);
@@ -152,10 +176,30 @@ exports.sendPersonalMessage = async (senderId, recipientId, content, file) => {
             message: newMessage,
             timestamp,
         };
-
+        console.log('CB GUI TIN NHAN CHO NGUOI DUNG ONLINE')
         const status = await redisClient.get(`user:${recipientId}:status`);
+        // if (status === "online") {
+        //     console.log('DA GUI TIN NHAN CHO NGUOI DUNG ONLINE')
+        //     redisClient.publish(`chatuser:${recipientId}`, JSON.stringify(messageData));
+        // }
         if (status === "online") {
-            redisClient.publish(`chatuser:${recipientId}`, JSON.stringify(messageData));
+            console.log(messageData)
+            console.log('ĐANG GỬI TIN NHẮN CHO NGƯỜI DÙNG ONLINE...');
+            try {
+                const numSubscribers = await redisClient.publish(
+                    `chatuser:${recipientId}`,
+                    JSON.stringify(messageData)
+                );
+                console.log(`Number of subscribers: ${numSubscribers}`);
+                console.log('Published message:', JSON.stringify(messageData));
+                if (numSubscribers > 0) {
+                    console.log('ĐÃ GỬI TIN NHẮN CHO NGƯỜI DÙNG ONLINE.');
+                } else {
+                    console.warn('Người dùng online nhưng không có subscriber lắng nghe trên kênh.');
+                }
+            } catch (error) {
+                console.error('Lỗi khi phát tin nhắn qua Redis:', error);
+            }
         }
 
         return newMessage;

@@ -2,8 +2,6 @@ const Conversation = require("../models/Conversation");
 const Message = require("../models/Message");
 const GroupActivity = require("../models/GroupActivity");
 const Invitation = require("../models/Invitation");
-const { redisClient, connectToRedis } = require("../shared/redis/redisClient");
-connectToRedis();
 exports.unblockMemberInGroup = async (conversationId, adminId, memberId) => {
     try {
         // Tìm cuộc trò chuyện (nhóm) theo conversationId
@@ -147,8 +145,6 @@ exports.createGroup = async (userId, groupName, groupDescription, members, isPri
     // Trả về thông tin nhóm mới
     return group;
 };
-
-
 // Gửi tin nhắn vào nhóm
 exports.sendGroupMessage = async (conversationId, senderId, content, fileUrl) => {
     try {
