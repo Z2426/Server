@@ -130,33 +130,3 @@ exports.handleGroupInvite = async (req, res) => {
 };
 
 
-// Gửi tin nhắn trong nhóm
-// Gửi tin nhắn trong nhóm
-exports.sendGroupMessage = async (req, res) => {
-    const { senderId, conversationId, content, file_url } = req.body;
-
-    try {
-        // Kiểm tra dữ liệu đầu vào
-        if (!senderId || !conversationId || !content) {
-            return res.status(400).json({
-                message: "Thiếu thông tin cần thiết (senderId, conversationId, content).",
-            });
-        }
-
-        // Gọi service để gửi tin nhắn trong nhóm
-        const newMessage = await GroupService.sendGroupMessage(conversationId, senderId, content, file_url);
-
-        return res.status(200).json({
-            message: "Tin nhắn đã được gửi thành công",
-            data: newMessage,
-        });
-    } catch (error) {
-        console.error("Lỗi khi gửi tin nhắn nhóm:", error);
-
-        // Trả về lỗi chi tiết hơn nếu có thể
-        return res.status(500).json({
-            message: "Đã có lỗi xảy ra khi gửi tin nhắn",
-            error: error.message, // Trả về chi tiết lỗi cho client
-        });
-    }
-};

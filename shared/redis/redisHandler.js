@@ -1,65 +1,79 @@
-// Import Redis client and ensure it's connected
 const { redisClient, connectToRedis } = require("../../shared/redis/redisClient");
-connectToRedis();
-const setUserStatus = async (recipientId, status) => {
-    const key = `user:${recipientId}:status`; // Tạo key
+connectToRedis()
+// Lưu trạng thái người dùng (online/offline)
+const setUserStatus = async (userId, status) => {
+    const key = `user:${userId}:status`; // Tạo key
     const expiration = 3600; // TTL (thời gian sống) tính bằng giây, ví dụ 1 giờ
 
     try {
-        // Lưu trạng thái vào Redis với thời gian sống
         await redisClient.set(key, status, { EX: expiration });
-        console.log(`Đã lưu trạng thái '${status}' cho user ${recipientId} với key '${key}'.`);
+        console.log(`Đã lưu trạng thái '${status}' cho user ${userId}`);
     } catch (error) {
         console.error('Lỗi khi lưu trạng thái:', error);
     }
-}
-// Add a socket ID to the user's list of active connections
+};
+
+// Thêm socket ID vào danh sách kết nối của người dùng
 const addUserSocket = async (userId, socketId) => {
     try {
-        await redisClient.sAdd(`user:${userId}:sockets`, socketId); // Corrected to sAdd
+        await redisClient.sAdd(`user:${userId}:sockets`, socketId); // Thêm socketId vào Redis
         console.log(`Socket ID ${socketId} added for user ${userId}`);
     } catch (error) {
         console.error("Error adding socket ID to Redis:", error);
     }
 };
 
-// Remove a socket ID from the user's list of active connections
+// Xóa socket ID khỏi danh sách kết nối của người dùng
 const removeUserSocket = async (userId, socketId) => {
     try {
-        await redisClient.sRem(`user:${userId}:sockets`, socketId); // Corrected to sRem
+        await redisClient.sRem(`user:${userId}:sockets`, socketId); // Xóa socketId khỏi Redis
         console.log(`Socket ID ${socketId} removed for user ${userId}`);
-        // Kiểm tra xem danh sách còn lại bao nhiêu socket
         const remainingSockets = await redisClient.sCard(`user:${userId}:sockets`);
-
         if (remainingSockets === 0) {
-            // Nếu không còn kết nối nào, cập nhật trạng thái thành "offline"
-            await redisClient.set(`user:${userId}:status`, 'offline');
-            console.log(`User ${userId} is now offline.`);
+            await setUserStatus(userId, 'offline');
         }
     } catch (error) {
         console.error("Error removing socket ID from Redis:", error);
     }
 };
 
-// Retrieve all socket IDs for a specific user
+// Lấy tất cả socket ID của một người dùng
 const getUserSockets = async (userId) => {
     try {
-        return await redisClient.sMembers(`user:${userId}:sockets`); // Corrected to sMembers
+        return await redisClient.sMembers(`user:${userId}:sockets`);
     } catch (error) {
         console.error("Error fetching user sockets:", error);
         return [];
     }
 };
 
-// Send a message to all sockets associated with a user
-const sendMessageToAllSockets = async (userId, io, messageData) => {
+// Thêm người dùng vào nhóm (room)
+const addUserToGroup = async (userId, groupId) => {
     try {
-        const sockets = await getUserSockets(userId);
-        sockets.forEach((socketId) => {
-            io.to(socketId).emit("receive_message", messageData);
-        });
+        await redisClient.sAdd(`group:${groupId}:users`, userId);
+        console.log(`User ${userId} added to group ${groupId}`);
     } catch (error) {
-        console.error("Error sending message to all sockets:", error);
+        console.error("Error adding user to group:", error);
+    }
+};
+
+// Xóa người dùng khỏi nhóm (room)
+const removeUserFromGroup = async (userId, groupId) => {
+    try {
+        await redisClient.sRem(`group:${groupId}:users`, userId);
+        console.log(`User ${userId} removed from group ${groupId}`);
+    } catch (error) {
+        console.error("Error removing user from group:", error);
+    }
+};
+
+// Lấy tất cả người dùng trong nhóm
+const getUsersInGroup = async (groupId) => {
+    try {
+        return await redisClient.sMembers(`group:${groupId}:users`);
+    } catch (error) {
+        console.error("Error fetching users in group:", error);
+        return [];
     }
 };
 
@@ -67,6 +81,8 @@ module.exports = {
     addUserSocket,
     removeUserSocket,
     getUserSockets,
-    sendMessageToAllSockets,
-    setUserStatus
+    setUserStatus,
+    addUserToGroup,
+    removeUserFromGroup,
+    getUsersInGroup
 };

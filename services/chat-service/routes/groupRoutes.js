@@ -14,6 +14,5 @@ router.get("/admin/:userId/:conversationId", groupController.isAdmin);
 router.post("/invite", groupController.sendGroupInvite);
 router.post("/", groupController.createGroup);
 router.post("/invite/response", groupController.handleGroupInvite);
-//  gửi Tin nhắn nhóm
-router.post("/message/group", groupController.sendGroupMessage);
+
 module.exports = router;

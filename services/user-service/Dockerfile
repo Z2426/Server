@@ -1,32 +1,52 @@
-# Use the base Node.js image
-FROM node:16
+# Stage 1: Build dependencies (Development)
+FROM node:16-slim AS build
 
-# Set the working directory in the container
+# Set the working directory
 WORKDIR /usr/src/app
 
-# Copy the package files from this service directory to the working directory
+# Copy only package.json and package-lock.json to leverage Docker cache
 COPY ./services/user-service/package*.json ./
 
-# Install dependencies
-# Clear npm cache and remove node_modules if it exists, then install dependencies
-RUN npm cache clean --force && \
-    rm -rf node_modules && \
-    npm install
+# Install all dependencies (including dev dependencies like nodemon)
+RUN npm ci
 
-RUN npm install -g nodemon
-RUN npm i moment
+# Stage 2: Production image
+FROM node:16-slim AS production
 
-# Copy the shared folder (assuming the build context is set to the project root in docker-compose.yml)
+# Set the working directory for production container
+WORKDIR /usr/src/app
+
+# Copy only production dependencies from build stage (excluding dev dependencies like nodemon)
+COPY --from=build /usr/src/app/node_modules ./node_modules
+
+# Copy the rest of the application code (excluding node_modules)
+COPY ./services/user-service ./ 
 COPY ./shared /usr/src/app/shared
 
-
-# Copy the rest of the user-service code
-COPY ./services/user-service .
 # Set environment variable and expose the port
 ENV PORT=3002
 EXPOSE 3002
 
+# Install only production dependencies (no dev dependencies like nodemon)
+RUN npm ci --only=production
+
+# Run the application in production mode
+CMD ["node", "app.js"]
+
+# Stage 3: Development (optional)
+FROM node:16-slim AS dev
+
+# Set the working directory for development container
+WORKDIR /usr/src/app
+
+# Copy dependencies from production build stage
+COPY --from=production /usr/src/app /usr/src/app
+
+# Install development tools (like nodemon)
+RUN npm install -g nodemon
+
+# Expose the development port
+EXPOSE 3002
+
 # Run the application in development mode using Nodemon
-#CMD ["npm", "run", "dev"]
-#CMD ["npm","start"]
 CMD ["nodemon", "--legacy-watch", "app.js"]

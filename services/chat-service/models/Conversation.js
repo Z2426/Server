@@ -15,7 +15,6 @@ const ConversationSchema = new mongoose.Schema({
             count: { type: Number, default: 0 },
         },
     ], blockedUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // Lưu người bị chặn
-    admins: [{ type: Schema.Types.ObjectId, ref: 'User' }]
+    admins: [{ type: Schema.Types.ObjectId, ref: 'User' }] // neu hoi thoai la nhom
 }, { timestamps: true });
-
 module.exports = mongoose.model("Conversation", ConversationSchema);

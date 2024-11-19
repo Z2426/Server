@@ -1,4 +1,48 @@
 const messageService = require("../services/chatPrivateService");
+exports.sendMessageController = async (req, res) => {
+    try {
+        const { conversationId, senderId, text, fileUrl, replyToMessageId } = req.body;
+
+        // Gọi hàm service để gửi tin nhắn
+        const newMessage = await messageService.sendMessage(
+            conversationId,
+            senderId,
+            text,
+            fileUrl,
+            replyToMessageId
+        );
+
+        // Trả về phản hồi thành công
+        res.status(201).json({
+            message: "Message sent successfully",
+            data: newMessage,
+        });
+    } catch (error) {
+        // Trả về lỗi nếu có
+        res.status(500).json({
+            message: "Error sending message",
+            error: error.message,
+        });
+    }
+};
+// Lấy thông tin cuộc hội thoại theo ID
+exports.getConversationById = async (req, res) => {
+    try {
+        const { conversationId } = req.params;
+        // Gọi hàm từ service để lấy cuộc hội thoại
+        const conversation = await messageService.getConversationById(conversationId);
+
+        // Kiểm tra nếu không có cuộc hội thoại
+        if (!conversation) {
+            return res.status(404).json({ message: 'Conversation not found' });
+        }
+
+        return res.status(200).json(conversation);
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
 exports.getConversationsByUser = async (req, res) => {
     const { userId } = req.params;
     try {
@@ -69,17 +113,33 @@ exports.replyToMessageController = async (req, res) => {
     }
 };
 
-exports.sendPersonalMessageController = async (req, res) => {
-    const { senderId, recipientId, content, file } = req.body;
-
+exports.sendMessageController = async (req, res) => {
     try {
-        const newMessage = await messageService.sendPersonalMessage(senderId, recipientId, content, file);
-        return res.status(200).json(newMessage);
-    } catch (err) {
-        console.error("Lỗi khi gửi tin nhắn cá nhân:", err);
-        return res.status(500).json({ message: "Không thể gửi tin nhắn." });
+        const { conversationId, senderId, text, fileUrl, replyToMessageId } = req.body;
+
+        // Gọi hàm service để gửi tin nhắn
+        const newMessage = await messageService.sendMessage(
+            conversationId,
+            senderId,
+            text,
+            fileUrl,
+            replyToMessageId
+        );
+
+        // Trả về phản hồi thành công
+        res.status(201).json({
+            message: "Message sent successfully",
+            data: newMessage,
+        });
+    } catch (error) {
+        // Trả về lỗi nếu có
+        res.status(500).json({
+            message: "Error sending message",
+            error: error.message,
+        });
     }
 };
+
 
 exports.markMessagesAsReadController = async (req, res) => {
     const { conversationId, userId } = req.body;

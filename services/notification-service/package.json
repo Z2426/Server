@@ -21,6 +21,7 @@
         "socket.io": "^4.8.1",
         "socket.io-client": "^4.8.1",
         "winston": "^3.3.3",
+        "nodemon": "^3.1.7",
         "ws": "^8.18.0"
     },
     "devDependencies": {

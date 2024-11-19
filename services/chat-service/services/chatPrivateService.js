@@ -4,6 +4,17 @@ const Message = require("../models/Message");
 const { redisClient, connectToRedis } = require("../shared/redis/redisClient")
 
 connectToRedis()
+// Lấy thông tin cuộc hội thoại theo ID
+exports.getConversationById = async (conversationId) => {
+    try {
+        // Tìm cuộc hội thoại trong DB
+        const conversation = await Conversation.findById(conversationId)
+        return conversation;
+    } catch (error) {
+        throw new Error('Error while fetching conversation: ' + error.message);
+    }
+};
+
 exports.getConversationsByUser = async (userId) => {
     try {
         const conversations = await Conversation.find({
@@ -38,22 +49,7 @@ exports.getAllMessagesInConversation = async (conversationId, limit = 20, page =
         throw new Error("Không thể lấy tin nhắn trong hội thoại: " + error.message);
     }
 };
-// exports.getAllMessagesInConversation = async (conversationId, limit = 20, page = 1) => {
-//     try {
-//         // Tính toán số tin nhắn cần bỏ qua cho phân trang
-//         const skip = (page - 1) * limit;
 
-//         // Truy vấn tin nhắn trong hội thoại với phân trang
-//         const messages = await Message.find({ conversationId })
-//             .sort({ timestamp: 1 }) // Sắp xếp theo thời gian tin nhắn
-//             .skip(skip)
-//             .limit(limit);
-
-//         return messages;
-//     } catch (error) {
-//         throw new Error("Không thể lấy tin nhắn trong hội thoại: " + error.message);
-//     }
-// };
 const handleRedisStatus = async (userIds) => {
     const statusPromises = userIds.map(userId => redisClient.get(`user:${userId}:status`));
     const statuses = await Promise.all(statusPromises);
@@ -153,62 +149,50 @@ exports.replyToMessage = async (senderId, conversationId, messageId, content, fi
     }
 };
 
-exports.sendPersonalMessage = async (senderId, recipientId, content, file) => {
-    const timestamp = Date.now();
 
+exports.sendMessage = async (conversationId, senderId, text, fileUrl = null, replyToMessageId = null) => {
     try {
-        const conversation = await Conversation.findOneAndUpdate(
-            { type: "personal", members: { $all: [senderId, recipientId] } },
-            { $setOnInsert: { type: "personal", members: [senderId, recipientId] } },
-            { upsert: true, new: true }
-        );
-
-        if (conversation.blockedUsers && conversation.blockedUsers.includes(senderId)) {
-            throw new Error("Bạn đã bị chặn bởi người nhận.");
+        // Kiểm tra xem cuộc trò chuyện có tồn tại không
+        const conversation = await Conversation.findById(conversationId);
+        if (!conversation) {
+            throw new Error("Conversation not found");
         }
-
-        const newMessage = await createMessage(conversation._id, senderId, content, timestamp, file);
-
-        const messageData = {
-            type: 'personal',
-            senderId,
-            recipientId,
-            message: newMessage,
-            timestamp,
+        // Tạo đối tượng tin nhắn mới
+        const newMessage = new Message({
+            conversationId: conversationId,
+            senderId: senderId,
+            text: text,
+            file_url: fileUrl,
+            reply_to_message: replyToMessageId,
+            status: "sent", // Đặt trạng thái tin nhắn ban đầu là "sent"
+            readStatus: conversation.members.map(member => ({
+                userId: member,
+                status: member.toString() === senderId.toString() ? "read" : "sent",
+                timestamp: new Date(),
+            })),
+        });
+        // Lưu tin nhắn vào database
+        await newMessage.save();
+        // Cập nhật thông tin cuộc trò chuyện (lastMessage, unreadCounts)
+        conversation.lastMessage = {
+            content: text,
+            senderId: senderId,
+            timestamp: new Date(),
         };
-        console.log('CB GUI TIN NHAN CHO NGUOI DUNG ONLINE')
-        const status = await redisClient.get(`user:${recipientId}:status`);
-        // if (status === "online") {
-        //     console.log('DA GUI TIN NHAN CHO NGUOI DUNG ONLINE')
-        //     redisClient.publish(`chatuser:${recipientId}`, JSON.stringify(messageData));
-        // }
-        if (status === "online") {
-            console.log(messageData)
-            console.log('ĐANG GỬI TIN NHẮN CHO NGƯỜI DÙNG ONLINE...');
-            try {
-                const numSubscribers = await redisClient.publish(
-                    `chatuser:${recipientId}`,
-                    JSON.stringify(messageData)
-                );
-                console.log(`Number of subscribers: ${numSubscribers}`);
-                console.log('Published message:', JSON.stringify(messageData));
-                if (numSubscribers > 0) {
-                    console.log('ĐÃ GỬI TIN NHẮN CHO NGƯỜI DÙNG ONLINE.');
-                } else {
-                    console.warn('Người dùng online nhưng không có subscriber lắng nghe trên kênh.');
-                }
-            } catch (error) {
-                console.error('Lỗi khi phát tin nhắn qua Redis:', error);
+        // Cập nhật số lượng tin nhắn chưa đọc cho từng thành viên
+        conversation.unreadCounts.forEach((userUnreadCount) => {
+            if (userUnreadCount.userId.toString() !== senderId.toString()) {
+                userUnreadCount.count += 1; // Tăng số tin nhắn chưa đọc cho những thành viên khác
             }
-        }
-
-        return newMessage;
-    } catch (err) {
-        console.error("Lỗi khi gửi tin nhắn cá nhân:", err);
-        throw new Error("Không thể gửi tin nhắn.");
+        });
+        // Lưu lại cuộc trò chuyện với thông tin mới
+        await conversation.save();
+        return newMessage; // Trả về tin nhắn đã gửi
+    } catch (error) {
+        console.error("Error sending message:", error);
+        throw error;
     }
 };
-
 exports.markMessagesAsRead = async (conversationId, userId) => {
     try {
         const result = await Message.updateMany(

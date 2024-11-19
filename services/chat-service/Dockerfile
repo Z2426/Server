@@ -1,33 +1,31 @@
-# Use the base Node.js image
-FROM node:16
+# Stage 1: Build dependencies
+FROM node:16 AS build
 
-# Set the working directory in the container
+# Set the working directory
 WORKDIR /usr/src/app
 
-# Copy the package files from this service directory to the working directory
+# Copy package.json and package-lock.json to take advantage of Docker cache
 COPY ./services/chat-service/package*.json ./
 
-# Install dependencies
-# Clear npm cache and remove node_modules if it exists, then install dependencies
-RUN npm cache clean --force && \
-    rm -rf node_modules && \
-    npm install
+# Install dependencies using npm ci for faster, more reliable installs (only if you have package-lock.json)
+RUN npm ci
 
-RUN npm install -g nodemon
-RUN npm install redis
+# Stage 2: Production image
+FROM node:16-slim
 
+# Set the working directory
+WORKDIR /usr/src/app
 
-# Copy the shared folder (assuming the build context is set to the project root in docker-compose.yml)
+# Copy node_modules from the build stage
+COPY --from=build /usr/src/app/node_modules ./node_modules
+
+# Copy the rest of the application code (excluding node_modules)
+COPY ./services/chat-service ./
 COPY ./shared /usr/src/app/shared
 
-
-# Copy the rest of the user-service code
-COPY ./services/chat-service .
 # Set environment variable and expose the port
 ENV PORT=3007
 EXPOSE 3007
 
-# Run the application in development mode using Nodemon
-#CMD ["npm", "run", "dev"]
-#CMD ["npm","start"]
-CMD ["nodemon", "--legacy-watch", "app.js"]
+# Run the application in production mode
+CMD ["npm", "start"]

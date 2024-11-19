@@ -19,6 +19,7 @@
     "opossum": "^8.2.0",
     "redis": "^4.7.0",
     "socket.io": "^4.8.1",
+    "nodemon": "^3.1.7",
     "winston": "^3.3.3"
   },
   "devDependencies": {
