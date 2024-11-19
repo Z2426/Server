@@ -148,8 +148,6 @@ exports.replyToMessage = async (senderId, conversationId, messageId, content, fi
         throw new Error("Không thể gửi tin nhắn trả lời.");
     }
 };
-
-
 exports.sendMessage = async (conversationId, senderId, text, fileUrl = null, replyToMessageId = null) => {
     try {
         // Kiểm tra xem cuộc trò chuyện có tồn tại không
@@ -157,58 +155,79 @@ exports.sendMessage = async (conversationId, senderId, text, fileUrl = null, rep
         if (!conversation) {
             throw new Error("Conversation not found");
         }
+
         // Tạo đối tượng tin nhắn mới
         const newMessage = new Message({
             conversationId: conversationId,
             senderId: senderId,
             text: text,
             file_url: fileUrl,
-            reply_to_message: replyToMessageId,
             status: "sent", // Đặt trạng thái tin nhắn ban đầu là "sent"
             readStatus: conversation.members.map(member => ({
                 userId: member,
-                status: member.toString() === senderId.toString() ? "read" : "sent",
+                status: member.toString() === senderId.toString() ? "read" : "sent", // Người gửi tin nhắn có trạng thái "read"
                 timestamp: new Date(),
             })),
+            ...(replyToMessageId && { reply_to_message: replyToMessageId }),
         });
+        console.log(newMessage)
         // Lưu tin nhắn vào database
         await newMessage.save();
+
         // Cập nhật thông tin cuộc trò chuyện (lastMessage, unreadCounts)
         conversation.lastMessage = {
             content: text,
             senderId: senderId,
             timestamp: new Date(),
         };
+
         // Cập nhật số lượng tin nhắn chưa đọc cho từng thành viên
         conversation.unreadCounts.forEach((userUnreadCount) => {
             if (userUnreadCount.userId.toString() !== senderId.toString()) {
                 userUnreadCount.count += 1; // Tăng số tin nhắn chưa đọc cho những thành viên khác
             }
         });
+
         // Lưu lại cuộc trò chuyện với thông tin mới
         await conversation.save();
-        return newMessage; // Trả về tin nhắn đã gửi
+
+        // Trả về tin nhắn đã gửi
+        return newMessage;
+
     } catch (error) {
         console.error("Error sending message:", error);
         throw error;
     }
 };
-exports.markMessagesAsRead = async (conversationId, userId) => {
+exports.markMessagesAsRead = async (messageId, userId) => {
     try {
-        const result = await Message.updateMany(
-            { conversationId, senderId: { $ne: userId }, status: "sent" },
-            { $set: { status: "read" } }
-        );
+        // Tìm tin nhắn cần cập nhật
+        const message = await Message.findById(messageId);
+        if (!message) {
+            throw new Error("Message not found");
+        }
+        // Tìm trạng thái của người dùng trong readStatus
+        const userStatus = message.readStatus.find(status => status.userId.toString() === userId.toString());
+        if (userStatus && userStatus.status !== "read") {
+            // Cập nhật trạng thái của người dùng thành "read"
+            userStatus.status = "read";
+            userStatus.timestamp = new Date();
 
-        await Conversation.updateOne(
-            { _id: conversationId, "unreadCounts.userId": userId },
-            { $set: { "unreadCounts.$.count": 0 } }
-        );
+            // Kiểm tra nếu tất cả người dùng trong cuộc trò chuyện đã đọc tin nhắn
+            const allRead = message.readStatus.every(status => status.status === "read");
 
-        return result;
+            // Nếu tất cả đã đọc, thay đổi trạng thái tin nhắn chính thức thành "read"
+            if (allRead) {
+                message.status = "read"; // Cập nhật trạng thái của tin nhắn thành "read"
+            }
+
+            // Lưu tin nhắn với trạng thái đã cập nhật
+            await message.save();
+        }
+        return { message: "Message marked as read successfully." };
     } catch (error) {
-        console.error("Lỗi khi đánh dấu tin nhắn là đã đọc:", error);
-        throw error;
+        console.error("Error marking message as read:", error);
+        throw new Error("Error marking message as read");
     }
 };
 

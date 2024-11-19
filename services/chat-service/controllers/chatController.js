@@ -142,14 +142,12 @@ exports.sendMessageController = async (req, res) => {
 
 
 exports.markMessagesAsReadController = async (req, res) => {
-    const { conversationId, userId } = req.body;
-
+    const { messageId, userId } = req.body;
     try {
-        const result = await messageService.markMessagesAsRead(conversationId, userId);
-        return res.status(200).json(result);
+        const result = await messageService.markMessagesAsRead(messageId, userId);
+        res.status(200).send(result);
     } catch (error) {
-        console.error("Lỗi khi đánh dấu tin nhắn là đã đọc:", error);
-        return res.status(500).json({ message: "Không thể đánh dấu tin nhắn là đã đọc." });
+        res.status(500).send({ error: error.message });
     }
 };
 
