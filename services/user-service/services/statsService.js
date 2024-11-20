@@ -19,8 +19,7 @@ exports.getUserStats = async () => {
         throw new Error("Error getting user statistics");
     }
 };
-// Service to get user registration statistics by time period (day, week, month)
-// Service to get user registration statistics by time period (day, week, month)
+
 // Service to get user registration statistics by time period (day, week, month)
 exports.getUserRegistrationStats = async (timePeriod = 'day') => {
     const now = new Date(); // Ngày hiện tại

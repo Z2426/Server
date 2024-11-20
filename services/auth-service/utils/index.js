@@ -22,14 +22,13 @@ async function checkPassword(password, hashedPassword) {
 
 // Hàm tạo token
 function generateToken(payload) {
-    const token = jwt.sign(payload, SECRET_KEY, { expiresIn: '144h' }); // Token sẽ hết hạn sau 1 giờ
+    const token = jwt.sign(payload, SECRET_KEY, { expiresIn: '144h' }); // Token sẽ hết hạn sau 144 giờ
     return token; // Trả về token đã tạo
 }
 
 // Hàm xác thực token
 function verifyToken(token) {
     try {
-        console.log("DOING DECOED TOKEN ")
         const decoded = jwt.verify(token, SECRET_KEY); // Giải mã token
         return decoded; // Trả về dữ liệu đã giải mã
     } catch (error) {

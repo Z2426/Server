@@ -1,6 +1,0 @@
-{"level":"error","message":"Error in /api/test route: Invalid operation: result is NaN","timestamp":"2024-10-26T07:55:27.640Z"}
-{"level":"error","message":"Error in /api/test route: Invalid operation: result is NaN","timestamp":"2024-10-26T07:57:06.021Z"}
-{"level":"error","message":"Error in /api/test route: Invalid operation: result is NaN","timestamp":"2024-10-26T07:57:33.345Z"}
-{"level":"error","message":"Error in /api/test route: Invalid operation: result is NaN","timestamp":"2024-10-26T08:02:47.299Z"}
-{"level":"error","message":"Critical system failure!","timestamp":"2024-10-26T08:22:47.580Z"}
-{"level":"error","message":"Error in /api/test route: userData is not defined","timestamp":"2024-10-26T08:22:47.582Z"}

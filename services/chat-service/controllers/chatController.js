@@ -72,24 +72,7 @@ exports.getAllMessagesInConversation = async (req, res) => {
         return res.status(500).json({ message: "Không thể lấy tin nhắn trong hội thoại." });
     }
 };
-// exports.getAllMessagesInConversation = async (req, res) => {
-//     const { conversationId } = req.params;  // Lấy conversationId từ params
-//     const { limit, page } = req.query;      // Lấy limit và page từ query string
 
-//     try {
-//         // Lấy tất cả tin nhắn trong hội thoại
-//         const messages = await messageService.getAllMessagesInConversation(conversationId, parseInt(limit), parseInt(page));
-
-//         return res.status(200).json({
-//             messages,
-//             page: page,
-//             limit: limit
-//         });
-//     } catch (error) {
-//         console.error("Lỗi khi lấy tin nhắn trong hội thoại:", error);
-//         return res.status(500).json({ message: "Không thể lấy tin nhắn trong hội thoại." });
-//     }
-// };
 exports.createPersonalConversation = async (req, res) => {
     const { userIds } = req.body;  // Lấy danh sách userIds từ request body
 

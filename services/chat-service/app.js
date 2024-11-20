@@ -8,12 +8,6 @@ require('dotenv').config();
 const app = express();
 const cors = require('cors');
 app.use(express.json());
-// // Cấu hình CORS
-// const corsOptions = {
-//     origin: 'http://localhost:3001', // Cho phép từ frontend
-//     methods: ['GET', 'POST', 'PUT', 'DELETE'], // Các phương thức được phép
-//     allowedHeaders: ['Content-Type', 'Authorization'], // Các header cho phép
-// };
 const corsOptions = {
     origin: "*",  // Cho phép mọi nguồn (cổng khác nhau)
     methods: ['GET', 'POST', 'PUT', 'DELETE'], // Các phương thức được phép

@@ -9,12 +9,6 @@ require('dotenv').config();
 const app = express();
 const cors = require('cors');
 app.use(express.json());
-// Cấu hình CORS
-// const corsOptions = {
-//   origin: `${process.env.URL_POST_SERVICE}`, // Cho phép từ frontend
-//   methods: ['GET', 'POST', 'PUT', 'DELETE'], // Các phương thức được phép
-//   allowedHeaders: ['Content-Type', 'Authorization'], // Các header cho phép
-// };
 const corsOptions = {
   origin: "*",  // Cho phép mọi nguồn (cổng khác nhau)
   methods: ['GET', 'POST', 'PUT', 'DELETE'], // Các phương thức được phép
