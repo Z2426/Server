@@ -186,6 +186,30 @@ services:
           memory: 256M
           cpus: '0.2'
 
+# SUGGEST Service
+  suggest-service:
+    build:
+      context: .
+      dockerfile: ./services/service-suggest-friend/Dockerfile
+    container_name: service-suggest
+    env_file: .env
+    ports:
+      - "3009:3009"
+    networks:
+      - app-network
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - redis
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.9'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
 networks:
   app-network:
     driver: bridge
