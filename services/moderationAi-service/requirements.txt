@@ -1,0 +1,13 @@
+Flask
+torch
+transformers
+Pillow
+requests
+scikit-learn
+opencv-python
+numpy==1.21.5
+pymongo==4.3.3
+protobuf==3.20.3
+redis
+rq
+googletrans==4.0.0-rc1

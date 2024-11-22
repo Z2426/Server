@@ -466,7 +466,7 @@ exports.updateSpecifiedUsers = async (postId, userIds) => {
 
 // Tạo bài post với các trường cho phép
 exports.createPost = async (postData) => {
-  const allowedFields = ['userId', 'description', 'image', 'visibility']; // Các trường cho phép
+  const allowedFields = ['userId', 'description', 'image', 'visibility', 'urlVideo']; // Các trường cho phép
 
   // Lọc dữ liệu để chỉ lấy các trường cho phép
   const filteredPostData = {};

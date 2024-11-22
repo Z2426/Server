@@ -16,6 +16,9 @@ const PostSchema = new mongoose.Schema({
     image: {
         type: String
     }, // Đường dẫn ảnh
+    urlVideo: {
+        type: String
+    },
     likes: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Users' // Hoặc 'User' nếu bạn thay đổi tên mô hình 
