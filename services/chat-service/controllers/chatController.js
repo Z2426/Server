@@ -45,6 +45,7 @@ exports.getConversationById = async (req, res) => {
 };
 exports.getConversationsByUser = async (req, res) => {
     const { userId } = req.params;
+    console.log("TEST1", userId)
     try {
         const conversations = await messageService.getConversationsByUser(userId);
         res.status(200).json(conversations);

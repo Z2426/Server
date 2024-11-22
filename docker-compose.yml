@@ -185,7 +185,31 @@ services:
         reservations:
           memory: 256M
           cpus: '0.2'
-
+  suggest-service:
+    build:
+      context: .
+      dockerfile: ./services/service-suggest/Dockerfile # Đường dẫn đến Dockerfile của bạn
+    container_name: service-suggest
+    env_file: .env # Đảm bảo rằng bạn có file .env với các biến môi trường
+    ports:
+      - "3009:3009" # Biến môi trường PYTHON_SERVICE_PORT
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    networks:
+      - app-network
+    volumes:
+      - deepface_weights:/root/.deepface/weights
+    depends_on:
+      - redis # Chạy Redis service trước
+    deploy:
+      resources:
+        limits:
+          memory: 999M
+          cpus: '0.9'
+        reservations:
+          memory: 256M
+          cpus: '0.5'
 
 networks:
   app-network:
@@ -194,4 +218,4 @@ networks:
 volumes:
   cache_volume: {}
   redis_data: {}
-  model_data: {} 
+  deepface_weights: {}

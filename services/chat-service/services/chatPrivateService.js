@@ -17,9 +17,11 @@ exports.getConversationById = async (conversationId) => {
 
 exports.getConversationsByUser = async (userId) => {
     try {
+        console.log(userId)
         const conversations = await Conversation.find({
             members: userId
         })
+        console.log(conversations)
         return conversations;
     } catch (error) {
         console.error("Error in conversation service:", error);

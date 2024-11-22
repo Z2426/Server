@@ -1,11 +1,11 @@
 const express = require("express");
 const router = express.Router();
 const messageController = require("../controllers/chatController");
-// API lấy thông tin cuộc hội thoại theo ID
-router.get('/conversations/:conversationId', messageController.getConversationById);
 
 // lấy danh sách hội thoại user có tham gia
-router.get("/conversations/:userId", messageController.getConversationsByUser);
+router.get("/users/:userId/conversations", messageController.getConversationsByUser);
+// API lấy thông tin cuộc hội thoại theo ID
+router.get('/conversations/:conversationId', messageController.getConversationById);
 
 // Gửi tin nhắn trả lời
 router.post("/message/reply", messageController.replyToMessageController);

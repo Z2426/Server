@@ -12,6 +12,4 @@ app = Flask(__name__)
 app.register_blueprint(user_blueprint)
 
 if __name__ == "__main__":
-    # Get the port from the environment variable, default to 5000 if not set
-    port = os.getenv("FLASK_RUN_PORT", 5000)
-    app.run(debug=True, port=int(port))
+    app.run(debug=True, host="0.0.0.0", port=3009)  # Bind to 0.0.0.0

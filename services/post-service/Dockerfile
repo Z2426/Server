@@ -10,6 +10,7 @@ COPY ./services/post-service/package*.json ./
 # Install dependencies using npm ci for faster, more reliable installs
 RUN npm ci
 
+
 # Install nodemon globally (for development environment)
 RUN npm install -g nodemon
 
