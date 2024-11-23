@@ -1,9 +1,19 @@
 from flask import Blueprint, request, jsonify
 from models.embeddings_model import add_or_update_embedding, search_in_group,get_user_data,detect_person_using_mtcnn
 from utils.image_utils import load_image_from_url
-
+from models.suggestSmart import generate_text
 user_blueprint = Blueprint('user', __name__)
 
+# Controller: Xử lý request API
+@user_blueprint.route('/generate-text', methods=['POST'])
+def handle_generate_text():
+    data = request.json
+    prompt = data['prompt']
+    if not prompt:
+        return jsonify({"error": "No prompt provided"}), 400
+    # Gọi hàm xử lý sinh văn bản
+    generated_text = generate_text(prompt)
+    return jsonify({"generated_text": generated_text})
 @user_blueprint.route('/detect_person', methods=['POST'])
 def detect_person():
     """

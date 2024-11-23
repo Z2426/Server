@@ -194,7 +194,7 @@ services:
     ports:
       - "3008:3008" # Biến môi trường PYTHON_SERVICE_PORT
     volumes:
-      - data_models:/app/models
+      - data_models:/root/.cache/huggingface/transformers
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
@@ -225,13 +225,11 @@ services:
       - app-network
     volumes:
       - deepface_weights:/root/.deepface/weights
+      - data_models:/root/.cache/huggingface/transformers
     depends_on:
       - redis # Chạy Redis service trước
     deploy:
       resources:
-        limits:
-          memory: 999M
-          cpus: '0.9'
         reservations:
           memory: 256M
           cpus: '0.5'

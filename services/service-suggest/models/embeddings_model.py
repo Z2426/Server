@@ -48,7 +48,6 @@ def convert_image_to_base64(image):
     """Chuyển đổi numpy.ndarray thành chuỗi base64."""
     _, buffer = cv2.imencode('.jpg', image)
     return base64.b64encode(buffer).decode('utf-8')
-
 def add_or_update_embedding(user_id, image):
     # Tính toán embedding cho hình ảnh
     embedding = DeepFace.represent(image, model_name="Facenet", enforce_detection=False)[0]['embedding']
@@ -62,12 +61,10 @@ def add_or_update_embedding(user_id, image):
         # Thêm mới embedding của người dùng
         embeddings_collection.insert_one({"user_id": user_id, "embedding": embedding})
         return {"message": f"Added embedding for user {user_id}."}
-
 def search_in_group(image, threshold):
     detector = MTCNN()
     aligned_faces = align_faces(image, detector)
     detected_users = []
-
     for face in aligned_faces:
         # Tính toán embedding cho từng khuôn mặt đã căn chỉnh
         face_embedding = DeepFace.represent(face, model_name="Facenet", enforce_detection=False)[0]['embedding']
