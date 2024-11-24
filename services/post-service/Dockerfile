@@ -8,7 +8,8 @@ WORKDIR /usr/src/app
 COPY ./services/post-service/package*.json ./
 
 # Install dependencies using npm ci for faster, more reliable installs
-RUN npm ci
+RUN npm i
+RUN npm install redis
 
 
 # Install nodemon globally (for development environment)

@@ -25,6 +25,7 @@ const userSchema = new mongoose.Schema({
   },
   location: { type: String },
   profileUrl: { type: String },
+  videoUrl: { type: String },
   cover_photo: { type: String },
   profession: { type: String },
   gender: {

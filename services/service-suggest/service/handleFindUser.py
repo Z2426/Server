@@ -6,6 +6,7 @@ from models.database import embeddings_collection, search_results_collection,use
 from utils.image_utils import align_faces
 from bson import ObjectId
 from mtcnn import MTCNN
+
 def detect_person_using_mtcnn(image):
     detector = MTCNN()
     faces = detector.detect_faces(image) 
@@ -69,3 +70,16 @@ def search_in_group(image, threshold):
     })
     
     return detected_users
+def suggest_friend_logic(current_user_id, image, threshold=0.6):
+    # Tìm kiếm những người dùng trong ảnh
+    detected_users = search_in_group(image, threshold)
+    
+    # Lấy dữ liệu của người dùng hiện tại (bạn bè và người bị chặn)
+    blocked_users, friends = get_user_data(current_user_id)
+    
+    # Lọc ra những người dùng có thể kết bạn (chưa bị chặn và chưa là bạn bè)
+    potential_friends = [
+        user_id for user_id in detected_users
+        if user_id != current_user_id and user_id not in blocked_users and user_id not in friends
+    ]
+    return {"suggested_friends": potential_friends}, 200

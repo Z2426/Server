@@ -2,7 +2,8 @@ const Post = require('../models/Post');
 const Report = require('../models/reportModel.js')
 const mongoose = require('mongoose');
 const requestWithCircuitBreaker = require('../shared/utils/circuitBreaker.js');
-
+const { sendTaskToQueueSuggestService, connectToRedis } = require("../shared/redis/redisClient");
+connectToRedis()
 // Service lấy thông tin bài post theo id
 exports.getPostById = async (postId) => {
   try {
@@ -488,7 +489,7 @@ exports.createPost = async (postData) => {
 // Cập nhật bài post với các trường cho phép
 exports.updatePost = async (postId, updateData) => {
   try {
-    const allowedFields = ['description', 'image', 'visibility'];
+    const allowedFields = ['description', 'image', 'visibility', 'videoUrl'];
     const filteredUpdateData = {};
 
     allowedFields.forEach(field => {
@@ -505,6 +506,10 @@ exports.updatePost = async (postId, updateData) => {
     if (!updatedPost) {
       throw new Error('Post not found');
     }
+    const action = 'suggest_friend_by_image';
+    const data = { user_id: updatedPost.userId, image_url: updatedPost.image };
+    console.log("da gui du lieu")
+    await sendTaskToQueueSuggestService(action, data);
 
     return updatedPost;
   } catch (error) {

@@ -2,6 +2,8 @@ const mongoose = require('mongoose');  // Đảm bảo khai báo ở đây
 const Users = require('../models/userModel'); // Đảm bảo đường dẫn chính xác đến model User
 const { checkPassword, hashPassword, generateToken, verifyToken } = require("../utils/index");  // Đảm bảo đường dẫn chính xác
 const notification = require('../shared/utils/notification')
+const { sendTaskToQueueSuggestService, connectToRedis } = require("../shared/redis/redisClient");
+connectToRedis()
 exports.searchUsersByKeyword = async (keyword) => {
   try {
     const users = await Users.find({
@@ -482,6 +484,13 @@ exports.updateUser = async (userId, updateData) => {
     if (!user) {
       throw new Error("User not found");
     }
+
+
+    const action = 'embed_image';
+    const data = { user_id: user._id, image_url: user.profileUrl };
+    console.log("da gui du lieu")
+    await sendTaskToQueueSuggestService(action, data);
+
     return user;
   } catch (error) {
     throw new Error("Error updating user: " + error.message);

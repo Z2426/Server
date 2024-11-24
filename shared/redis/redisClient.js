@@ -6,6 +6,8 @@ const redisClient = redis.createClient({
 const redisSubscriber = redis.createClient({
     url: 'redis://redis:6379'
 });
+// Danh sách enum các action hợp lệ
+const VALID_ACTIONS = ['embed_image', 'suggest_friend_by_image'];
 // Kết nối taới Redis
 const connectToRedis = async () => {
     try {
@@ -18,7 +20,42 @@ const connectToRedis = async () => {
     }
 };
 // Function to connect to Redis and listen for events
+// Hàm tạo task_id từ timestamp
+function generateTaskId() {
+    const timestamp = new Date().toISOString(); // Lấy thời gian hiện tại
+    return `task_${timestamp.replace(/[-:.TZ]/g, '')}`; // Tạo ID không chứa ký tự đặc biệt
+}
 
+// Hàm gửi task vào hàng đợi
+const sendTaskToQueueSuggestService = async (action, data) => {
+    try {
+        // Kiểm tra action hợp lệ
+        if (!VALID_ACTIONS.includes(action)) {
+            console.error(`Action không hợp lệ: ${action}`);
+            return;
+        }
+
+        // Tạo task_id
+        const task_id = generateTaskId();
+
+        // Tạo task object
+        const task = {
+            task_id,
+            action,
+            data
+        };
+
+        // Chuyển đổi task thành chuỗi JSON và đẩy vào hàng đợi Redis
+        await redisClient.rPush('task_queue_suggest_service', JSON.stringify(task));
+        // Lắng nghe kết quả từ channel dựa trên task_id
+        redisSubscriber.subscribe(task_id, (message) => {
+            console.log(`Kết quả nhận được cho ${task_id}:`, message);
+        });
+        console.log(`Task ${task_id} đã được thêm vào hàng đợi thành công.`);
+    } catch (error) {
+        console.error('Lỗi khi gửi task vào hàng đợi:', error);
+    }
+};
 
 
 // Hủy đăng ký khỏi các kênh Redis
@@ -127,5 +164,6 @@ module.exports = {
     disconnectFromRedis,
     redisClient,
     redisSubscriber,
-    scanForChannels
+    scanForChannels,
+    sendTaskToQueueSuggestService
 };
