@@ -14,13 +14,29 @@ exports.suggestFriends = async (userId, limit = 10) => {
         ...user.followers.map(follower => follower.toString()),
     ];
 
-    // Tìm những người dùng chưa phải bạn bè, chưa có trong danh sách bạn bè hoặc yêu cầu bạn bè
-    const suggestedFriends = await Users.find({
-        _id: { $nin: excludeIds }, // Loại trừ các userId trong mảng excludeIds
+    // Lấy danh sách suggestFriends từ cơ sở dữ liệu của người dùng
+    const suggestFriends = user.suggestFriends.map(friend => friend.toString());
+
+    // Tìm những người dùng chưa phải bạn bè, chưa có trong danh sách bạn bè hoặc yêu cầu bạn bè, và có trong suggestFriends
+    let suggestedFriends = await Users.find({
+        _id: { $in: suggestFriends }, // Chỉ lấy những người có trong suggestFriends của người dùng
         statusActive: true // Chỉ gợi ý người dùng có tài khoản hoạt động
     })
-        .limit(limit) // Giới hạn số lượng người dùng gợi ý
-        .select('firstName lastName location profileUrl profession'); // Chọn trường thông tin cần thiết
+        .select('firstName lastName location profileUrl profession suggestFriends'); // Chọn trường thông tin cần thiết
 
-    return suggestedFriends;
+    // Nếu số lượng gợi ý chưa đủ, lấy thêm người dùng từ cơ sở dữ liệu
+    if (suggestedFriends.length < limit) {
+        const remainingLimit = limit - suggestedFriends.length;
+
+        const additionalFriends = await Users.find({
+            _id: { $nin: excludeIds }, // Loại trừ các userId trong mảng excludeIds
+            statusActive: true // Chỉ gợi ý người dùng có tài khoản hoạt động
+        })
+            .limit(remainingLimit) // Lấy thêm số lượng còn thiếu
+            .select('firstName lastName location profileUrl profession'); // Chọn trường thông tin cần thiết
+
+        suggestedFriends = [...suggestedFriends, ...additionalFriends]; // Kết hợp danh sách đã lấy và thêm gợi ý mới
+    }
+
+    return suggestedFriends.slice(0, limit); // Đảm bảo danh sách gợi ý không vượt quá giới hạn
 };
