@@ -42,6 +42,7 @@ const userSchema = new mongoose.Schema({
       message: "Birth date cannot be in the future!"
     }
   },
+  suggestfriends: [{ type: Schema.Types.ObjectId, ref: 'Users' }],
   friends: [{ type: Schema.Types.ObjectId, ref: 'Users' }],
   followers: [{ type: Schema.Types.ObjectId, ref: 'Users' }],
   following: [{ type: Schema.Types.ObjectId, ref: 'Users' }],
