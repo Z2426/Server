@@ -7,21 +7,10 @@ from utils.image_utils import align_faces
 from bson import ObjectId
 from mtcnn import MTCNN
 def detect_person_using_mtcnn(image):
-    """
-    Kiểm tra ảnh có người hay không bằng MTCNN.
-    
-    Args:
-    - image (numpy array): Hình ảnh cần kiểm tra.
-    
-    Returns:
-    - bool: True nếu có người, False nếu không có người.
-    """
     detector = MTCNN()
-    faces = detector.detect_faces(image)
-    
+    faces = detector.detect_faces(image) 
     return len(faces) > 0
 def get_user_data(user_id):
-    print("GET INFO USERS")
     print(user_id)
     # Make sure to convert user_id to ObjectId
     try:
@@ -29,7 +18,6 @@ def get_user_data(user_id):
     except Exception as e:
         print("Invalid user_id format:", e)
         return [], []
-
     # Query to fetch user data from the Users collection based on the _id field
     #user_data = users_collection.find_one({"_id": user_id}, {"blockedUsers": 1, "friends": 1})\
     user_data = users_collection.find_one({"_id": ObjectId(user_id)}, {"blockedUsers": 1, "friends": 1})
@@ -39,7 +27,6 @@ def get_user_data(user_id):
         friends = user_data.get("friends", [])
         print("Blocked Users:", blocked_users)
         print("Friends:", friends)
-
         return blocked_users, friends
     else:
         print("No user found with the provided user_id.")
@@ -52,7 +39,6 @@ def add_or_update_embedding(user_id, image):
     # Tính toán embedding cho hình ảnh
     embedding = DeepFace.represent(image, model_name="Facenet", enforce_detection=False)[0]['embedding']
     existing_user = embeddings_collection.find_one({"user_id": user_id})
-    
     if existing_user:
         # Cập nhật embedding của người dùng
         embeddings_collection.update_one({"user_id": user_id}, {"$set": {"embedding": embedding}})
@@ -76,7 +62,6 @@ def search_in_group(image, threshold):
 
     # Chuyển đổi hình ảnh sang base64 trước khi lưu
     base64_image = convert_image_to_base64(image)
-    
     # Lưu kết quả tìm kiếm vào MongoDB
     search_results_collection.insert_one({
         "group_image": base64_image,

@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from models.content_model import check_sensitive_image, check_sensitive_text,classify_post
+from service.content_model import check_sensitive_image, check_sensitive_text,classify_post
 
 content_bp = Blueprint('content', __name__)
 

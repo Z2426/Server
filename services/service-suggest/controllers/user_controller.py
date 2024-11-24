@@ -1,33 +1,13 @@
 from flask import Blueprint, request, jsonify
-from models.embeddings_model import add_or_update_embedding, search_in_group,get_user_data,detect_person_using_mtcnn
+from service.handleFindUser import add_or_update_embedding, search_in_group,get_user_data,detect_person_using_mtcnn
 from utils.image_utils import load_image_from_url
-from models.suggestSmart import generate_text
 user_blueprint = Blueprint('user', __name__)
 
-# Controller: Xử lý request API
-@user_blueprint.route('/generate-text', methods=['POST'])
-def handle_generate_text():
-    data = request.json
-    prompt = data['prompt']
-    if not prompt:
-        return jsonify({"error": "No prompt provided"}), 400
-    # Gọi hàm xử lý sinh văn bản
-    generated_text = generate_text(prompt)
-    return jsonify({"generated_text": generated_text})
+
 @user_blueprint.route('/detect_person', methods=['POST'])
 def detect_person():
-    """
-    API endpoint kiểm tra xem ảnh có chứa khuôn mặt hay không.
-    
-    Args:
-    - image_url (str): URL của ảnh cần kiểm tra.
-
-    Returns:
-    - JSON: Kết quả kiểm tra có khuôn mặt hay không.
-    """
     data = request.json
     image_url = data['image_url']
-    
     # Tải ảnh từ URL
     image = load_image_from_url(image_url)
     if image is not None:
@@ -74,7 +54,6 @@ def add_embedding():
         return jsonify(response), 200
     else:
         return jsonify({"error": "Could not load image."}), 400
-
 @user_blueprint.route('/search_in_group', methods=['POST'])
 def search_group():
     data = request.json
