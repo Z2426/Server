@@ -21,6 +21,9 @@ const PostSchema = new mongoose.Schema({
         ref: 'Users' // Hoặc 'User' nếu bạn thay đổi tên mô hình 
     }], // Người dùng đã thích bài viết
     comments: [CommentSchema],  // Danh sách bình luận cho bài viết
+    urlVideo: {
+        type: String
+    },
     visibility: {
         type: String,
         enum: ['public', 'friends', 'private'],
