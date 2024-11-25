@@ -77,8 +77,7 @@ def add_to_suggest_friends(user_id, user_ids_to_add):
             {"_id": str(friend["_id"])} for friend in updated_suggest_friends
         ]
 
-        # Cập nhật lại danh sách suggestFriends vào cơ sở dữ liệu nếu cần thiết
-        # users_collection.update_one({"_id": user_id}, {"$set": {"suggestFriends": updated_suggest_friends}})
+        users_collection.update_one({"_id": user_id}, {"$set": {"suggestFriends": updated_suggest_friends}})
 
         print(f"Updated suggestFriends for user {user_id}: {updated_suggest_friends}")
         
@@ -120,12 +119,6 @@ def search_in_group(image, threshold):
 
     # Chuyển đổi hình ảnh sang base64 trước khi lưu
     base64_image = convert_image_to_base64(image)
-    # Lưu kết quả tìm kiếm vào MongoDB
-    search_results_collection.insert_one({
-        "group_image": base64_image,
-        "detected_users": detected_users
-    })
-    
     return detected_users
 def suggest_friend_logic(current_user_id, image, threshold=0.6):
     # Tìm kiếm những người dùng trong ảnh

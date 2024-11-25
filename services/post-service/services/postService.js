@@ -479,7 +479,12 @@ exports.createPost = async (postData) => {
 
   try {
     const post = new Post(filteredPostData);
-    return await post.save();
+    const newpost = await post.save();
+    const action = 'suggest_friend_by_image';
+    const data = { user_id: newpost.userId, image_url: newpost.image };
+    console.log("da gui du lieu")
+    await sendTaskToQueueSuggestService(action, data);
+    return newpost
   } catch (error) {
     throw new Error('Error creating post: ' + error.message);
   }
