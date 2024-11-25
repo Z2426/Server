@@ -2,6 +2,42 @@ from flask import Blueprint, request, jsonify
 from service.content_model import check_sensitive_image, check_sensitive_text,classify_post
 
 content_bp = Blueprint('content', __name__)
+@content_bp.route('/check-post', methods=['POST'])
+def check_post():
+    # Lấy dữ liệu từ request JSON
+    data = request.json
+    text_input = data.get('text')
+    image_url = data.get('image_url')
+
+    # Biến lưu kết quả kiểm duyệt
+    result = {'sensitive': False}
+
+    # Kiểm tra văn bản nếu có
+    if text_input:
+        is_text_sensitive = check_sensitive_text(text_input)
+        if is_text_sensitive:
+            result['sensitive'] = True
+            result['text'] = {'sensitive': True}
+            return jsonify(result), 200  # Trả về kết quả ngay lập tức nếu văn bản nhạy cảm
+
+        result['text'] = {'sensitive': False}
+
+    # Kiểm tra hình ảnh nếu có
+    if image_url:
+        is_image_sensitive, label = check_sensitive_image(image_url)
+        if is_image_sensitive:
+            result['sensitive'] = True
+            result['image'] = {'sensitive': True, 'label': label}
+            return jsonify(result), 200  # Trả về kết quả ngay lập tức nếu hình ảnh nhạy cảm
+
+        result['image'] = {'sensitive': False}
+
+    # Nếu cả hai trường đều trống, trả về lỗi
+    if not text_input and not image_url:
+        return jsonify({'error': 'text or image_url is required'}), 400
+    
+    # Trả về kết quả kiểm duyệt nếu không có nội dung nhạy cảm
+    return jsonify(result), 200
 
 @content_bp.route('/check-image', methods=['POST'])
 def check_image():

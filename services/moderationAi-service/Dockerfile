@@ -30,12 +30,18 @@ RUN apt-get update && apt-get install -y \
     libglib2.0-0 \
     && apt-get clean
 
-# Copy installed dependencies from the build stage
+# Set environment variables
+ENV HF_HOME=/root/.cache/huggingface/transformers 
+
+# Create the cache directory in the container (if not exists)
+RUN mkdir -p /root/.cache/huggingface/transformers
+
+# Copy the application code and the installed dependencies from the build stage
 COPY --from=build /usr/local/lib/python3.8/site-packages/ /usr/local/lib/python3.8/site-packages/
 COPY --from=build /usr/local/bin/ /usr/local/bin/
 
 # Copy the application code
-COPY ./services/moderationAi-service ./
+COPY ./services/moderationAi-service ./services/moderationAi-service
 
 # Verify Flask and OpenCV installation
 RUN python -c "import flask; print(f'✅ Flask version: {flask.__version__}')" && \
@@ -46,4 +52,4 @@ ENV PORT=3008
 EXPOSE 3008
 
 # Command to run the application
-CMD ["python3", "app.py"]
+CMD ["python3", "services/moderationAi-service/app.py"]

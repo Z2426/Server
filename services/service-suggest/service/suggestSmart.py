@@ -13,6 +13,7 @@ load_dotenv()
 API_URL_GENERATE_AI = os.getenv("API_URL_GENERATE_AI")
 TOKEN_HUFACE = os.getenv("TOKEN_HUGEFACE")
 # API Key và URL của Hugging Face
+#link thay the https://api-inference.huggingface.co/models/kothariyashhh/GenAi-Texttoimage
 API_URL_GENERATE_AI = "https://api-inference.huggingface.co/models/ZB-Tech/Text-to-Image"
 TOKEN_HUFACE = "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"  # Thay bằng API key của bạn
 headers = {"Authorization": f"Bearer {TOKEN_HUFACE}"}

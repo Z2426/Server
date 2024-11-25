@@ -44,6 +44,12 @@ const PostSchema = new mongoose.Schema({
     categories: [{
         type: String
     }], // Loại hoặc danh mục của bài viết
+    // Trạng thái kiểm duyệt
+    status: {
+        type: String,
+        enum: ['pending', 'approved', 'rejected'], // Các trạng thái
+        default: 'pending'                        // Trạng thái mặc định là "pending" (Chờ duyệt)
+    },
     createdAt: {
         type: Date,
         default: Date.now

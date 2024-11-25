@@ -2,12 +2,16 @@ import requests
 from PIL import Image, UnidentifiedImageError
 from io import BytesIO
 import torch
+import os
 from transformers import CLIPProcessor, CLIPModel, BertTokenizer, BertForSequenceClassification,pipeline
 from sklearn.metrics.pairwise import cosine_similarity
 from transformers import pipeline
 from googletrans import Translator
 # Tải mô hình CLIP
 # Tải và lưu mô hình và tokenizer
+# Đảm bảo rằng biến môi trường TRANSFORMERS_CACHE đã được thiết lập đúng
+cache_dir = os.getenv("HF_HOME", "/root/.cache/huggingface/transformers")
+os.makedirs(cache_dir, exist_ok=True)  # Tạo thư mục cache nếu chưa tồn tại
 
 clip_model = CLIPModel.from_pretrained("openai/clip-vit-base-patch16")
 clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch16")

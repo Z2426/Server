@@ -204,9 +204,6 @@ services:
       - redis # Chạy Redis service trước
     deploy:
       resources:
-        limits:
-          memory: 999M
-          cpus: '0.9'
         reservations:
           memory: 256M
           cpus: '0.5'
