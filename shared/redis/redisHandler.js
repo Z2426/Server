@@ -1,5 +1,44 @@
 const { redisClient, connectToRedis } = require("../../shared/redis/redisClient");
 connectToRedis()
+// Cập nhật điểm quan tâm của người dùng vào Redis
+const updateUserInterest = async (user_id, post_id, post_category, action) => {
+    const action_points = {
+        'Like': 3,
+        'Xem': 1,
+        'Comment': 5
+    };
+
+    const score = action_points[action] || 0;
+
+    const key = `user:${user_id}:topics`;
+
+    redisClient.zincrby(key, score, post_category, (err, res) => {
+        if (err) {
+            console.error('Error updating interest:', err);
+        } else {
+            console.log(`User ${user_id} updated interest in ${post_category} with score ${score}`);
+        }
+    });
+}
+// Lấy top 3 chủ đề quan tâm từ Redis
+const getUserTopTopics = async (user_id) => {
+    return new Promise((resolve, reject) => {
+        const key = `user:${user_id}:topics`;
+
+        redisClient.zrevrange(key, 0, 2, 'WITHSCORES', (err, res) => {
+            if (err) {
+                reject(err);
+            } else {
+                const top_topics = [];
+                for (let i = 0; i < res.length; i += 2) {
+                    top_topics.push(res[i]);  // Thêm chủ đề vào mảng
+                }
+                resolve(top_topics);
+            }
+        });
+    });
+}
+
 // Lưu trạng thái người dùng (online/offline)
 const setUserStatus = async (userId, status) => {
     const key = `user:${userId}:status`; // Tạo key
@@ -84,5 +123,7 @@ module.exports = {
     setUserStatus,
     addUserToGroup,
     removeUserFromGroup,
-    getUsersInGroup
+    getUsersInGroup,
+    getUserTopTopics,
+    updateUserInterest
 };

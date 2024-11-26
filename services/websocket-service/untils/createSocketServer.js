@@ -7,6 +7,7 @@ const {
     removeUserFromGroup,
     getUsersInGroup,
     getUserSockets,
+    updateUserInterest
 } = require("../shared/redis/redisHandler");
 
 const createSocketServer = (server) => {
@@ -37,6 +38,14 @@ const createSocketServer = (server) => {
                 console.error("Error in userOnline:", error);
             }
         });
+        // Lắng nghe sự kiện "user_interaction" từ frontend
+        socket.on('user_interaction', (data) => {
+            const { user_id, post_id, post_category, action } = data;
+            console.log(`Received interaction from User ${user_id} on Post ${post_id} (Category: ${post_category}) with Action: ${action}`);
+            // Gọi hàm để cập nhật điểm quan tâm vào Redis
+            updateUserInterest(user_id, post_id, post_category, action);
+        });
+
 
         // Xử lý người dùng tham gia nhóm
         socket.on("joinGroup", async ({ userId, groupId }) => {

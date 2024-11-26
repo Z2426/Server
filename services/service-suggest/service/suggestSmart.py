@@ -37,7 +37,7 @@ def generate_text(prompt):
     # Tạo nội dung dựa trên đầu vào
     output = model.generate(
         inputs["input_ids"],
-        max_length=200,
+        max_length=1000,
         num_return_sequences=1,
         no_repeat_ngram_size=2,
         temperature=0.3,
