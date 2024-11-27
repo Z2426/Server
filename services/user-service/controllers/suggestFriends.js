@@ -4,7 +4,7 @@ exports.getSuggestedFriends = async (req, res) => {
         const { userId } = req.body.user; // Lấy userId từ token hoặc yêu cầu
         const { limit } = req.query; // Số lượng đề xuất gợi ý, mặc định là 10
         console.log("Get suggest friends")
-        const suggestedFriends = await suggestFriends.suggestFriends(userId, limit);
+        const suggestedFriends = await suggestFriends.getFriendSuggestions(userId, limit);
         res.status(200).json({
             message: 'Danh sách gợi ý bạn bè',
             suggestedFriends
