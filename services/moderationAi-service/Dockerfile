@@ -15,8 +15,11 @@ RUN apt-get update && apt-get install -y \
 # Install Rust (Rustup is the recommended way to install Rust) with the -y flag to skip interaction
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 
-# Set the PATH for Rust (cargo and rustc)
+# Ensure the cargo and rustc binaries are available by adding them to the PATH
 ENV PATH="/root/.cargo/bin:${PATH}"
+
+# Verify that Rust and Cargo are installed successfully
+RUN rustc --version && cargo --version
 
 # Copy the requirements file first to leverage Docker cache
 COPY ./services/moderationAi-service/requirements.txt ./requirements.txt
