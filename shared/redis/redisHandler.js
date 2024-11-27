@@ -9,34 +9,39 @@ const updateUserInterest = async (user_id, post_id, post_category, action) => {
     };
 
     const score = action_points[action] || 0;
-
     const key = `user:${user_id}:topics`;
 
-    redisClient.zincrby(key, score, post_category, (err, res) => {
-        if (err) {
-            console.error('Error updating interest:', err);
-        } else {
-            console.log(`User ${user_id} updated interest in ${post_category} with score ${score}`);
-        }
-    });
+    try {
+        const res = await redisClient.zIncrBy(key, score, post_category);
+        console.log(`User ${user_id} updated interest in ${post_category} with score ${score}. New score: ${res}`);
+    } catch (err) {
+        console.error('Error updating interest:', err);
+    }
 }
-// Lấy top 3 chủ đề quan tâm từ Redis
-const getUserTopTopics = async (user_id) => {
-    return new Promise((resolve, reject) => {
-        const key = `user:${user_id}:topics`;
+// Kiểm tra lại
+const getUserTopTopics = async (user_id, limit = 2) => {
+    const key = `user:${user_id}:topics`;
+    try {
+        // Lấy tất cả các chủ đề và điểm số từ Redis với WITHSCORES
+        const data = await redisClient.zRangeWithScores(key, 0, -1);
+        console.log('Raw data from Redis:', data);  // Kiểm tra dữ liệu thô
 
-        redisClient.zrevrange(key, 0, 2, 'WITHSCORES', (err, res) => {
-            if (err) {
-                reject(err);
-            } else {
-                const top_topics = [];
-                for (let i = 0; i < res.length; i += 2) {
-                    top_topics.push(res[i]);  // Thêm chủ đề vào mảng
-                }
-                resolve(top_topics);
-            }
-        });
-    });
+        if (data.length === 0) {
+            console.log(`No interests found for user ${user_id}`);
+            return {};
+        }
+        // Đảo ngược kết quả để sắp xếp theo điểm số giảm dần
+        const sortedData = data.reverse();  // Đảo ngược mảng
+
+        // Lấy các chủ đề top N theo điểm số
+        const topInterests = sortedData.slice(0, limit).map(item => item.value);
+
+        console.log(`Top ${limit} interests for user ${user_id}:`, topInterests);
+        return topInterests;
+    } catch (err) {
+        console.error('Error retrieving all interest scores:', err);
+        return null;
+    }
 }
 
 // Lưu trạng thái người dùng (online/offline)

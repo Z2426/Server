@@ -7,13 +7,14 @@ const {
     removeUserFromGroup,
     getUsersInGroup,
     getUserSockets,
-    updateUserInterest
+    updateUserInterest,
+    getUserTopTopics
 } = require("../shared/redis/redisHandler");
 
 const createSocketServer = (server) => {
     const io = new Server(server, {
         cors: {
-            origin: process.env.CLIENT_PORT || "*",
+            origin: "*",
             methods: ["GET", "POST"],
             allowedHeaders: ["Content-Type"],
             credentials: true,
@@ -39,11 +40,13 @@ const createSocketServer = (server) => {
             }
         });
         // Lắng nghe sự kiện "user_interaction" từ frontend
-        socket.on('user_interaction', (data) => {
+        socket.on('user_interaction', async (data) => {
             const { user_id, post_id, post_category, action } = data;
             console.log(`Received interaction from User ${user_id} on Post ${post_id} (Category: ${post_category}) with Action: ${action}`);
             // Gọi hàm để cập nhật điểm quan tâm vào Redis
             updateUserInterest(user_id, post_id, post_category, action);
+            console.log(await getUserTopTopics('1'))
+
         });
 
 
