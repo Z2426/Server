@@ -12,8 +12,8 @@ RUN apt-get update && apt-get install -y \
     curl \
     && apt-get clean
 
-# Install Rust
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+# Install Rust (Rustup is the recommended way to install Rust) with the -y flag to skip interaction
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 
 # Set the PATH for Rust (cargo and rustc)
 ENV PATH="/root/.cargo/bin:${PATH}"
@@ -31,7 +31,7 @@ FROM python:3.8-slim
 # Set the working directory
 WORKDIR /usr/src/app
 
-# Install runtime dependencies (libgl1, libglib2.0-0)
+# Install runtime dependencies
 RUN apt-get update && apt-get install -y \
     libgl1 \
     libglib2.0-0 \
