@@ -1,5 +1,5 @@
 # Stage 1: Build dependencies (build environment)
-FROM python:3.8-slim AS build
+FROM rust:1.70-slim AS build  
 
 # Set the working directory
 WORKDIR /usr/src/app
@@ -11,15 +11,6 @@ RUN apt-get update && apt-get install -y \
     libglib2.0-0 \
     curl \
     && apt-get clean
-
-# Install Rust (Rustup is the recommended way to install Rust) with the -y flag to skip interaction
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-
-# Ensure the cargo and rustc binaries are available by adding them to the PATH
-ENV PATH="/root/.cargo/bin:${PATH}"
-
-# Verify that Rust and Cargo are installed successfully
-RUN rustc --version && cargo --version
 
 # Copy the requirements file first to leverage Docker cache
 COPY ./services/moderationAi-service/requirements.txt ./requirements.txt
@@ -63,3 +54,6 @@ EXPOSE 3008
 
 # Command to run the application
 CMD ["python3", "services/moderationAi-service/app.py"]
+
+
+
