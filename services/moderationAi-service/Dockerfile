@@ -9,7 +9,14 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     libgl1 \
     libglib2.0-0 \
+    curl \
     && apt-get clean
+
+# Install Rust
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
+# Set the PATH for Rust (cargo and rustc)
+ENV PATH="/root/.cargo/bin:${PATH}"
 
 # Copy the requirements file first to leverage Docker cache
 COPY ./services/moderationAi-service/requirements.txt ./requirements.txt
@@ -24,7 +31,7 @@ FROM python:3.8-slim
 # Set the working directory
 WORKDIR /usr/src/app
 
-# Install runtime dependencies
+# Install runtime dependencies (libgl1, libglib2.0-0)
 RUN apt-get update && apt-get install -y \
     libgl1 \
     libglib2.0-0 \

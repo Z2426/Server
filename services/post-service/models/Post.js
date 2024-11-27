@@ -37,6 +37,9 @@ const PostSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Users' // Hoặc 'User' nếu bạn thay đổi tên mô hình 
     }], // Người dùng đã xem bài viết
+    tags: [{
+        type: String
+    }],
     followers: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Users' // Hoặc 'User' nếu bạn thay đổi tên mô hình 
