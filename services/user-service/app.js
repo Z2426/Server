@@ -4,7 +4,7 @@ const userRoutes = require('./routes/userRoutes');
 const adminRoutes = require('./routes/adminRoutes.js')
 const statisticsRoute = require('./routes/statsRoutes.js')
 const errorHandler = require('./shared/middleware/errorHandler.js');
-//const moment = require('moment');
+const { connectToRedis } = require("./shared/redis/redisClient");
 
 require('./shared/middleware/logRequest.js');
 require('./shared/utils/logger.js');
@@ -12,12 +12,6 @@ require('dotenv').config();
 const axios = require('axios');
 const app = express();
 const cors = require('cors');
-// Cấu hình CORS
-// const corsOptions = {
-//   origin: [`${process.env.URL_POST_SERVICE}`, `${process.env.URL_AUTH_SERVICE}`, `${process.env.URL_CLIENT}`],// Cho phép từ frontend
-//   methods: ['GET', 'POST', 'PUT', 'DELETE'], // Các phương thức được phép
-//   allowedHeaders: ['Content-Type', 'Authorization'], // Các header cho phép
-// };
 const corsOptions = {
   origin: "*",  // Cho phép mọi nguồn (cổng khác nhau)
   methods: ['GET', 'POST', 'PUT', 'DELETE'], // Các phương thức được phép
@@ -28,6 +22,7 @@ app.use(cors(corsOptions));
 app.use(express.json());
 // Kết nối tới cơ sở dữ liệu
 connectDB();
+connectToRedis()
 // Định nghĩa các routes
 app.use('/api/users', userRoutes);
 app.use('/api/admin', adminRoutes);
@@ -36,6 +31,12 @@ app.use('/api/stat', statisticsRoute)
 app.use(errorHandler);
 // Khởi động server
 const PORT = process.env.USER_SERVICE_PORT || 3001;
+
+
+
+
+
+
 app.listen(PORT, () => {
   console.log(`User service running on port ${PORT}`);
 });

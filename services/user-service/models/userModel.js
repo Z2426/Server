@@ -24,7 +24,10 @@ const userSchema = new mongoose.Schema({
     select: false
   },
   location: { type: String },
-  profileUrl: { type: String },
+  profileUrl: {
+    type: String
+    , default: "https://res.cloudinary.com/dr91wukb1/image/upload/v1732886370/gasrcm5diz1wr6lhafg3.png"
+  },
   videoUrl: { type: String },
   cover_photo: { type: String },
   profession: { type: String },

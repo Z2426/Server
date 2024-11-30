@@ -1,5 +1,5 @@
 const redis = require('redis');
-
+const crypto = require('crypto');
 const redisClient = redis.createClient({
     url: 'redis://redis:6379'
 });
@@ -19,11 +19,13 @@ const connectToRedis = async () => {
         console.error('Error connecting to Redis:', err);
     }
 };
+
 // Function to connect to Redis and listen for events
 // Hàm tạo task_id từ timestamp
 function generateTaskId() {
-    const timestamp = new Date().toISOString(); // Lấy thời gian hiện tại
-    return `task_${timestamp.replace(/[-:.TZ]/g, '')}`; // Tạo ID không chứa ký tự đặc biệt
+    const randomValue = crypto.randomInt(1000, 9999); // Tạo số ngẫu nhiên từ 1000 đến 9999
+    const timestamp = new Date().toISOString().replace(/[-:.TZ]/g, ''); // Tạo timestamp không chứa ký tự đặc biệt
+    return `task_${timestamp}_${randomValue}`; // Kết hợp timestamp và giá trị ngẫu nhiên
 }
 
 // Hàm gửi task vào hàng đợi
@@ -136,24 +138,31 @@ const scanForChannels = async (redisSubscriber, pattern, callback) => {
     }
 };
 
-// Subscribe to Redis channels
+// Subscribe to Redis channels (with parallel subscription)
 const subscribeToChannels = async (channels, callback) => {
     if (!Array.isArray(channels)) {
         console.error('channels must be an array');
         return;
     }
 
-    for (const channel of channels) {
-        // Đảm bảo rằng đăng ký kênh được thực hiện đúng cách
-        await redisSubscriber.subscribe(channel, (message) => {
-            console.log(`Received message from channel ${channel}:`, message);
-            callback(channel, message); // Gửi kênh và thông điệp về callback
-        });
+    try {
+        // Đăng ký tất cả các kênh đồng thời
+        await Promise.all(channels.map(channel =>
+            redisSubscriber.subscribe(channel, (message) => {
+                try {
+                    console.log(`Received message from channel ${channel}:`, message);
+                    callback(channel, message); // Gửi kênh và thông điệp về callback
+                } catch (callbackError) {
+                    console.error(`Error processing message from channel ${channel}:`, callbackError);
+                }
+            })
+        ));
+
+        console.log(`Successfully subscribed to channels: ${channels.join(', ')}`);
+    } catch (err) {
+        console.error('Error during Redis subscribe:', err);
     }
-
-    console.log(`Successfully subscribed to channels: ${channels.join(', ')}`);
 };
-
 // Xuất các hàm
 module.exports = {
     connectToRedis,
@@ -164,6 +173,7 @@ module.exports = {
     disconnectFromRedis,
     redisClient,
     redisSubscriber,
+    generateTaskId,
     scanForChannels,
     sendTaskToQueueSuggestService
 };

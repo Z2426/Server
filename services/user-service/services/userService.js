@@ -2,8 +2,24 @@ const mongoose = require('mongoose');  // Đảm bảo khai báo ở đây
 const Users = require('../models/userModel'); // Đảm bảo đường dẫn chính xác đến model User
 const { checkPassword, hashPassword, generateToken, verifyToken } = require("../utils/index");  // Đảm bảo đường dẫn chính xác
 const notification = require('../shared/utils/notification')
-const { sendTaskToQueueSuggestService, connectToRedis } = require("../shared/redis/redisClient");
-connectToRedis()
+const { sendTaskToQueueSuggestService } = require("../shared/redis/redisClient");
+exports.isFriendOf = async (userId, potentialFriendId) => {
+  try {
+    // Tìm người dùng cần kiểm tra
+    const user = await Users.findById(userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    // Kiểm tra xem potentialFriendId có trong danh sách bạn bè của người dùng không
+    const isFriend = user.friends.includes(potentialFriendId);
+
+    return isFriend;
+  } catch (error) {
+    console.error('Error checking friendship:', error);
+    return false;  // Trả về false nếu có lỗi trong quá trình kiểm tra
+  }
+}
 exports.searchUsersByKeyword = async (keyword) => {
   try {
     const users = await Users.find({

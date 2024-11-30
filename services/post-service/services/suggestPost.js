@@ -1,7 +1,5 @@
 const axios = require('axios');
 const Post = require('../models/Post');
-
-
 exports.getNewsfeed = async (userId, page = 1, limit = 10) => {
     try {
         console.log("NEWFEEDS");

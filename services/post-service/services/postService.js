@@ -1,9 +1,10 @@
 const Post = require('../models/Post');
 const Report = require('../models/reportModel.js')
 const mongoose = require('mongoose');
+const axios = require('axios'); // Import axios
 const requestWithCircuitBreaker = require('../shared/utils/circuitBreaker.js');
-const { sendTaskToQueueSuggestService, connectToRedis } = require("../shared/redis/redisClient");
-connectToRedis()
+const { sendTaskToQueueSuggestService } = require("../shared/redis/redisClient");
+//connectToRedis()
 // Service lấy thông tin bài post theo id
 exports.getPostById = async (postId) => {
   try {
@@ -17,8 +18,6 @@ exports.getPostById = async (postId) => {
     throw error; // Ném lỗi ra ngoài để controller xử lý
   }
 };
-
-const axios = require('axios'); // Import axios
 // Xóa bài post nếu vi phạm nguyên tắc
 exports.deletePostIfViolating = async (postId) => {
   const deletedPost = await Post.findByIdAndDelete(postId);
@@ -292,11 +291,6 @@ exports.updateCommentOrReply = async (postId, userId, comment, commentId = null,
 
   return post; // Trả về bài viết đã cập nhật
 };
-
-
-
-
-
 exports.createCommentOrReply = async (postId, userId, commentText, commentId = null) => {
   const post = await Post.findById(postId);
 
@@ -422,7 +416,6 @@ exports.getUserPosts = async (userId, page = 1, limit = 10) => {
     throw new Error('Lỗi khi lấy danh sách bài post của người dùng');
   }
 };
-
 exports.getPostWithUserDetails = async (postId) => {
   try {
     // Retrieve the post from the database
@@ -444,9 +437,7 @@ exports.getPostWithUserDetails = async (postId) => {
     console.error("Error fetching post with user details:", error);
     throw new Error("Could not fetch post with user details");
   }
-};
-
-
+}
 // Cập nhật danh sách specifiedUsers
 exports.updateSpecifiedUsers = async (postId, userIds) => {
   try {
@@ -464,7 +455,6 @@ exports.updateSpecifiedUsers = async (postId, userIds) => {
     throw new Error('Error updating specified users: ' + error.message);
   }
 };
-
 // Tạo bài post với các trường cho phép
 exports.createPost = async (postData) => {
   const allowedFields = ['userId', 'description', 'image', 'visibility', 'urlVideo']; // Các trường cho phép
@@ -489,8 +479,6 @@ exports.createPost = async (postData) => {
     throw new Error('Error creating post: ' + error.message);
   }
 };
-
-
 // Cập nhật bài post với các trường cho phép
 exports.updatePost = async (postId, updateData) => {
   try {
@@ -521,9 +509,6 @@ exports.updatePost = async (postId, updateData) => {
     throw new Error('Error updating post: ' + error.message);
   }
 };
-
-
-
 
 // Xóa bài post
 exports.deletePost = async (postId) => {
