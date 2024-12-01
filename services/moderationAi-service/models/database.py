@@ -27,4 +27,4 @@ client = MongoClient(mongo_url)
 client = MongoClient(mongo_url)
 
 db = client['socialdb']
-post_collection = db['users']
+post_collection = db['posts']

@@ -3,7 +3,7 @@ const Report = require('../models/reportModel.js')
 const mongoose = require('mongoose');
 const axios = require('axios'); // Import axios
 const requestWithCircuitBreaker = require('../shared/utils/circuitBreaker.js');
-const { sendTaskToQueueSuggestService } = require("../shared/redis/redisClient");
+const { sendTaskToQueueSuggestService, sendToQueue } = require("../shared/redis/redisClient");
 //connectToRedis()
 // Service lấy thông tin bài post theo id
 exports.getPostById = async (postId) => {
@@ -380,7 +380,7 @@ exports.markPostAsViewed = async (postId, userId) => {
     if (!updatedPost) {
       throw new Error('Bài post không tìm thấy');
     }
-
+    console.log("update sucess")
     return updatedPost;
   } catch (error) {
     throw new Error('Có lỗi xảy ra khi đánh dấu bài post là đã xem: ' + error.message);
@@ -474,6 +474,16 @@ exports.createPost = async (postData) => {
     const data = { user_id: newpost.userId, image_url: newpost.image };
     console.log("da gui du lieu")
     await sendTaskToQueueSuggestService(action, data);
+    const task = {
+      'action': 'classifyPost',
+      'data': {
+        'user_id': newpost.userId,
+        'post_id': newpost._id,
+        'text': newpost.description,
+        'image_url': newpost.image
+      }
+    }
+    sendToQueue('task_classify_post', 'classifyPost', task)
     return newpost
   } catch (error) {
     throw new Error('Error creating post: ' + error.message);
@@ -503,7 +513,16 @@ exports.updatePost = async (postId, updateData) => {
     const data = { user_id: updatedPost.userId, image_url: updatedPost.image };
     console.log("da gui du lieu")
     await sendTaskToQueueSuggestService(action, data);
-
+    const task = {
+      'action': 'classifyPost',
+      'data': {
+        'user_id': updatedPost.userId,
+        'post_id': updatedPost._id,
+        'text': updatedPost.description,
+        'image_url': updatedPost.image
+      }
+    }
+    sendToQueue('task_classify_post', 'classifyPost', task)
     return updatedPost;
   } catch (error) {
     throw new Error('Error updating post: ' + error.message);

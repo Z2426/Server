@@ -1,7 +1,33 @@
 from flask import Blueprint, request, jsonify
 from service.content_model import check_sensitive_image, check_sensitive_text,classify_post
-
+from googletrans import Translator
 content_bp = Blueprint('content', __name__)
+@content_bp.route('/translator', methods=['POST'])
+def translate():
+    # Lấy dữ liệu từ yêu cầu JSON
+    data = request.get_json()
+
+    # Kiểm tra xem các tham số src, dest và text có được truyền vào không
+    src = data.get('src')
+    dest = data.get('dest')
+    text = data.get('text')
+
+    if not src or not dest or not text:
+        return jsonify({'error': 'Missing parameters. Please provide src, dest, and text.'}), 400
+
+    try:
+        translator = Translator()
+        # Dịch văn bản, thêm tham số text đúng cách
+        result = translator.translate(text, src=src, dest=dest)
+        # Trả về kết quả dịch dưới dạng JSON
+        return jsonify({
+            'original_text': text,
+            'translated_text': result.text,
+            'src_language': src,
+            'dest_language': dest
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 @content_bp.route('/check-post', methods=['POST'])
 def check_post():
     # Lấy dữ liệu từ request JSON

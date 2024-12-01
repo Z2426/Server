@@ -11,7 +11,6 @@ const PostSchema = new mongoose.Schema({
     }, // Người dùng đăng bài
     description: {
         type: String,
-        required: true
     }, // Nội dung bài viết
     image: {
         type: String
@@ -62,7 +61,16 @@ const PostSchema = new mongoose.Schema({
         default: Date.now
     }
 });
+// Tạo chỉ mục đơn (Single Indexes)
+PostSchema.index({ userId: 1 });
+PostSchema.index({ categories: 1 });
+PostSchema.index({ status: 1 });
+PostSchema.index({ createdAt: -1 });
 
+// Tạo chỉ mục kết hợp (Compound Indexes)
+PostSchema.index({ userId: 1, status: 1 });
+PostSchema.index({ categories: 1, createdAt: -1 });
+PostSchema.index({ followers: 1, visibility: 1, createdAt: -1 })
 const Post = mongoose.model("Post", PostSchema);
 module.exports = Post;
 

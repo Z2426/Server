@@ -4,8 +4,9 @@ const userRoutes = require('./routes/userRoutes');
 const adminRoutes = require('./routes/adminRoutes.js')
 const statisticsRoute = require('./routes/statsRoutes.js')
 const errorHandler = require('./shared/middleware/errorHandler.js');
-const { connectToRedis } = require("./shared/redis/redisClient");
-
+const { connectToRedis, sendToQueue } = require("./shared/redis/redisClient");
+const { handleUserInteraction } = require("./shared/redis/redisHandler");
+const { listenForEvents } = require("./eventListener.js")
 require('./shared/middleware/logRequest.js');
 require('./shared/utils/logger.js');
 require('dotenv').config();
@@ -23,6 +24,8 @@ app.use(express.json());
 // Kết nối tới cơ sở dữ liệu
 connectDB();
 connectToRedis()
+listenForEvents()
+
 // Định nghĩa các routes
 app.use('/api/users', userRoutes);
 app.use('/api/admin', adminRoutes);
@@ -31,12 +34,6 @@ app.use('/api/stat', statisticsRoute)
 app.use(errorHandler);
 // Khởi động server
 const PORT = process.env.USER_SERVICE_PORT || 3001;
-
-
-
-
-
-
 app.listen(PORT, () => {
   console.log(`User service running on port ${PORT}`);
 });

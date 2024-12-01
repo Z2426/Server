@@ -10,7 +10,10 @@ const {
     updateUserInterest,
     getUserTopTopics
 } = require("../shared/redis/redisHandler");
-
+const {
+    connectToRedis, sendToQueue
+} = require("../shared/redis/redisClient");
+connectToRedis()
 const createSocketServer = (server) => {
     const io = new Server(server, {
         cors: {
@@ -48,8 +51,27 @@ const createSocketServer = (server) => {
             console.log(await getUserTopTopics('1'))
 
         });
-
-
+        socket.on('interactPost', async (data) => {
+            try {
+                console.log('Received interactpost:', data);
+                // Kiểm tra dữ liệu đầu vào
+                if (!data.userId || !data.friendId || !data.postId || !data.postCategory) {
+                    console.error('Invalid data received:', data);
+                    return;
+                }
+                // Tạo taskData
+                const taskData = {
+                    userId: data.userId,
+                    friendId: data.friendId,
+                    postId: data.postId,
+                    postCategory: data.postCategory,
+                };
+                // Gửi tác vụ vào hàng đợi
+                await sendToQueue('process_post', 'handleUserInteraction', taskData);
+            } catch (error) {
+                console.error('Error processing interactpost:', error);
+            }
+        });
         // Xử lý người dùng tham gia nhóm
         socket.on("joinGroup", async ({ userId, groupId }) => {
             if (!userId || !groupId) {
