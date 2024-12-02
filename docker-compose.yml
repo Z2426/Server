@@ -151,7 +151,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 2000M
+          memory: 1200M
           cpus: '0.5'
         reservations:
           memory: 256M
@@ -185,14 +185,15 @@ services:
         reservations:
           memory: 256M
           cpus: '0.2'
+
   moderationai-service:
     build:
       context: .
-      dockerfile: ./services/moderationAi-service/Dockerfile # Đường dẫn đến Dockerfile của bạn
+      dockerfile: ./services/moderationAi-service/Dockerfile
     container_name: moderationAi-service
-    env_file: .env # Đảm bảo rằng bạn có file .env với các biến môi trường
+    env_file: .env
     ports:
-      - "3008:3008" # Biến môi trường PYTHON_SERVICE_PORT
+      - "3008:3008"
     volumes:
       - data_models:/root/.cache/huggingface/transformers
     environment:
@@ -201,20 +202,21 @@ services:
     networks:
       - app-network
     depends_on:
-      - redis # Chạy Redis service trước
+      - redis
     deploy:
       resources:
         reservations:
           memory: 256M
           cpus: '0.5'
+
   suggest-service:
     build:
       context: .
-      dockerfile: ./services/service-suggest/Dockerfile # Đường dẫn đến Dockerfile của bạn
+      dockerfile: ./services/service-suggest/Dockerfile
     container_name: service-suggest
-    env_file: .env # Đảm bảo rằng bạn có file .env với các biến môi trường
+    env_file: .env
     ports:
-      - "3009:3009" # Biến môi trường PYTHON_SERVICE_PORT
+      - "3009:3009"
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
@@ -224,12 +226,25 @@ services:
       - deepface_weights:/root/.deepface/weights
       - data_models:/root/.cache/huggingface/transformers
     depends_on:
-      - redis # Chạy Redis service trước
+      - redis
     deploy:
       resources:
         reservations:
           memory: 256M
           cpus: '0.5'
+
+  botpress:
+    image: botpress/server:latest # Hoặc sử dụng phiên bản khác
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./services/Bot-service:/botpress/data
+    environment:
+      - NODE_ENV=production
+      - BP_HOST=0.0.0.0
+      - BP_PORT=3000
+      - BP_WEBHOOK_ENABLED=true
+    restart: unless-stopped
 
 networks:
   app-network:
