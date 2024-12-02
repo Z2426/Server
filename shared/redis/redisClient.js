@@ -61,6 +61,7 @@ function generateTaskId() {
 }
 const sendToQueue = async (queueName, action, data) => {
     try {
+        console.log("bat dau them vao hàng doi ", queueName)
         // Tạo task_id duy nhất
         const task_id = generateTaskId();
 
@@ -70,7 +71,6 @@ const sendToQueue = async (queueName, action, data) => {
             action,
             data
         };
-
         // Chuyển đối tượng task thành chuỗi JSON và đẩy vào hàng đợi Redis
         await redisClient.rPush(queueName, JSON.stringify(task));
         console.log(`Task với ID: ${task_id} đã được thêm vào hàng đợi ${queueName} thành công.`);

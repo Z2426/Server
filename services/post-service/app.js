@@ -13,8 +13,9 @@ const startServer = async () => {
   try {
     // Kết nối đến cơ sở dữ liệu MongoDB
     await connectDB();
+    await connectToRedis()
     // Kết nối đến Redis
-    await connectToRedis();
+    //await connectToRedis();
     // CORS middleware
     const corsOptions = {
       origin: "*",  // Cho phép mọi nguồn (cổng khác nhau)
@@ -27,7 +28,16 @@ const startServer = async () => {
     app.use('/api/stat', statRoutes);
     // Khởi động server
     const PORT = process.env.POST_SERVICE_PORT || 3002;
-
+    // const task = {
+    //   'action': 'classifyPost',
+    //   'data': {
+    //     'user_id': 'user123',
+    //     'post_id': "6738809933220a093e938ba9",
+    //     'text': 'This is a test post.',
+    //     'image_url': 'http://example.com/image.jpg'
+    //   }
+    // }
+    // sendToQueue('task_classify_post', 'classifyPost', task)
     processTaskFromQueue()
     app.listen(PORT, () => {
       console.log(`Post service running on port ${PORT}`);

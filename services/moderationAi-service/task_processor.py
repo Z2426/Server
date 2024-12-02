@@ -12,23 +12,27 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 r = redis.StrictRedis(host='redis', port=6379, db=0)
 
 def process_task(task):
-    task_id = task.get('task_id')
-    action = task.get('action')
-    data = task.get('data', {}).get('data', {}) 
-    post_id = data.get('post_id')
-    user_id = data.get('user_id')
-    text_content = data.get('text')
-    image_url = data.get('image_url')
-
-    # In ra toàn bộ thông tin để kiểm tra
-    logging.info(f"Task ID: {task_id}")
-    logging.info(f"Action: {action}")
-    logging.info(f"User ID: {user_id}")
-    logging.info(f"Text Content: {text_content}")
-    logging.info(f"Image URL: {image_url}")
-    logging.info(f"Full Task Data: {task}")
-
     try:
+        # Log thông tin task nhận được
+        logging.info(f"Task nhận được: {task}")
+        
+        task_id = task.get('task_id')
+        action = task.get('action')
+        data = task.get('data', {})
+        
+        post_id = data.get('post_id')
+        user_id = data.get('user_id')
+        text_content = data.get('text')
+        image_url = data.get('image_url')
+
+        # In ra toàn bộ thông tin để kiểm tra
+        logging.info(f"Task ID: {task_id}")
+        logging.info(f"Action: {action}")
+        logging.info(f"User ID: {user_id}")
+        logging.info(f"Text Content: {text_content}")
+        logging.info(f"Image URL: {image_url}")
+        logging.info(f"Full Task Data: {task}")
+
         logging.info(f"Đang xử lý task {task_id} với hành động {action}")
         
         # Thông báo bắt đầu xử lý task qua Redis

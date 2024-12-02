@@ -3,8 +3,8 @@ const Report = require('../models/reportModel.js')
 const mongoose = require('mongoose');
 const axios = require('axios'); // Import axios
 const requestWithCircuitBreaker = require('../shared/utils/circuitBreaker.js');
-const { sendTaskToQueueSuggestService, sendToQueue } = require("../shared/redis/redisClient");
-//connectToRedis()
+const { sendTaskToQueueSuggestService, sendToQueue, connectToRedis } = require("../shared/redis/redisClient");
+
 // Service lấy thông tin bài post theo id
 exports.getPostById = async (postId) => {
   try {
@@ -470,20 +470,15 @@ exports.createPost = async (postData) => {
   try {
     const post = new Post(filteredPostData);
     const newpost = await post.save();
-    const action = 'suggest_friend_by_image';
-    const data = { user_id: newpost.userId, image_url: newpost.image };
     console.log("da gui du lieu")
-    await sendTaskToQueueSuggestService(action, data);
-    const task = {
-      'action': 'classifyPost',
-      'data': {
-        'user_id': newpost.userId,
-        'post_id': newpost._id,
-        'text': newpost.description,
-        'image_url': newpost.image
-      }
+    var data = {
+      'user_id': newpost.userId,
+      'post_id': newpost._id,
+      'text': newpost.description,
+      'image_url': newpost.image
     }
-    sendToQueue('task_classify_post', 'classifyPost', task)
+    sendToQueue('task_queue_suggest_service', 'suggest_friend_by_image', data)
+    sendToQueue('task_classify_post', 'classifyPost', data)
     return newpost
   } catch (error) {
     throw new Error('Error creating post: ' + error.message);
@@ -509,20 +504,14 @@ exports.updatePost = async (postId, updateData) => {
     if (!updatedPost) {
       throw new Error('Post not found');
     }
-    const action = 'suggest_friend_by_image';
-    const data = { user_id: updatedPost.userId, image_url: updatedPost.image };
-    console.log("da gui du lieu")
-    await sendTaskToQueueSuggestService(action, data);
-    const task = {
-      'action': 'classifyPost',
-      'data': {
-        'user_id': updatedPost.userId,
-        'post_id': updatedPost._id,
-        'text': updatedPost.description,
-        'image_url': updatedPost.image
-      }
+    var data = {
+      'user_id': updatedPost.userId,
+      'post_id': updatedPost._id,
+      'text': updatedPost.description,
+      'image_url': updatedPost.image
     }
-    sendToQueue('task_classify_post', 'classifyPost', task)
+    sendToQueue('task_queue_suggest_service', 'suggest_friend_by_image', data)
+    sendToQueue('task_classify_post', 'classifyPost', data)
     return updatedPost;
   } catch (error) {
     throw new Error('Error updating post: ' + error.message);
