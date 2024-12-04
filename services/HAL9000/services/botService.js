@@ -2,15 +2,13 @@ require('dotenv').config();
 const axios = require('axios');
 const requestWithCircuitBreaker = require('../shared/utils/circuitBreaker.js');
 
-// Hàm tạo ảnh (có thể gọi API bên ngoài)
+// Hàm tạo content(có thể gọi API bên ngoài)
 const generateText = async (prompt) => {
-    const apiUrl = `${process.env.URL_SUGGEST_SERVICE}/generate-text`;  // Endpoint của API tạo hình ảnh
+    const apiUrl = `${process.env.URL_SUGGEST_SERVICE}/generate-text`;
     try {
         const response = await axios.post(apiUrl, { prompt });
         if (response.status === 200) {
-            // Giả sử API trả về hình ảnh dưới dạng base64 trong response.data.image
-            console.log(response.data)
-            return response.data;  // Trả về chuỗi base64 của hình ảnh
+            return response.data;
         } else {
             throw new Error('Image generation failed');
         }

@@ -6,15 +6,12 @@ content_bp = Blueprint('content', __name__)
 def translate():
     # Lấy dữ liệu từ yêu cầu JSON
     data = request.get_json()
-
     # Kiểm tra xem các tham số src, dest và text có được truyền vào không
     src = data.get('src')
     dest = data.get('dest')
     text = data.get('text')
-
     if not src or not dest or not text:
         return jsonify({'error': 'Missing parameters. Please provide src, dest, and text.'}), 400
-
     try:
         translator = Translator()
         # Dịch văn bản, thêm tham số text đúng cách
