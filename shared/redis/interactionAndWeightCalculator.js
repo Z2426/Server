@@ -167,7 +167,6 @@ const handleUserInteraction = async (userId, friendId, postId, postCategory, act
         const updatedWeights = await saveInteractionAndUpdateWeights(userId, interactionType);
         console.log(`${userId}  trong so `, updatedWeights)
         return updatedWeights;
-
     } catch (error) {
         throw error;
     }

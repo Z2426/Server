@@ -5,11 +5,8 @@ const {
     setUserStatus,
     addUserToGroup,
     removeUserFromGroup,
-    getUsersInGroup,
-    getUserSockets,
-    updateUserInterest,
-    getUserTopTopics
 } = require("../shared/redis/redisHandler");
+const { updateUserInterest } = require("../shared/redis/interactionAndWeightCalculator")
 const {
     connectToRedis, sendToQueue
 } = require("../shared/redis/redisClient");
@@ -48,7 +45,6 @@ const createSocketServer = (server) => {
             console.log(`Received interaction from User ${user_id} on Post ${post_id} (Category: ${post_category}) with Action: ${action}`);
             // Gọi hàm để cập nhật điểm quan tâm vào Redis
             updateUserInterest(user_id, post_id, post_category, action);
-            console.log(await getUserTopTopics('1'))
 
         });
         socket.on('interactPost', async (data) => {

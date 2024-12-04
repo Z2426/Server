@@ -233,19 +233,6 @@ services:
           memory: 256M
           cpus: '0.5'
 
-  botpress:
-    image: botpress/server:latest # Hoặc sử dụng phiên bản khác
-    ports:
-      - "4000:4000"
-    volumes:
-      - ./services/Bot-service:/botpress/data
-    environment:
-      - NODE_ENV=production
-      - BP_HOST=0.0.0.0
-      - BP_PORT=3000
-      - BP_WEBHOOK_ENABLED=true
-    restart: unless-stopped
-
 networks:
   app-network:
     driver: bridge
