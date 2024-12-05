@@ -4,7 +4,7 @@ const axios = require('axios');
 
 // Cấu hình cho Circuit Breaker
 const options = {
-  timeout: 3000, // Thời gian chờ (3 giây)
+  timeout: 40000, // Thời gian chờ (3 giây)
   errorThresholdPercentage: 50, // Ngưỡng lỗi 50%
   resetTimeout: 30000 // Thời gian phục hồi sau khi ngắt (30 giây)
 };

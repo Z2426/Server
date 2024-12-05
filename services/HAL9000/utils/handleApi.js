@@ -57,7 +57,7 @@ exports.generateText = async (prompt) => {
     try {
         const response = await requestWithCircuitBreaker(apiUrl, 'POST', { prompt });
         if (response) {
-            return response;
+            return response.generated_text;
         } else {
             throw new Error('Text generation failed: No response received');
         }
