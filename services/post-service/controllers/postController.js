@@ -17,8 +17,7 @@ exports.DeletePostViolate = async (req, res) => {
 exports.approvePost = async (req, res) => {
   try {
     const { postId } = req.params; // Lấy postId từ params
-    const result = await postService.removeReportFromPost(postId);
-
+    const result = await postService.approvePost(postId);
     res.json(result);
   } catch (error) {
     console.error("Error approving post:", error);

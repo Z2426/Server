@@ -113,7 +113,7 @@ exports.getUsersByIds = async (userIds) => {
     const fieldsToSelect = allowedFields.join(' ');
     // Tìm người dùng theo ID và chỉ lấy các trường cho phép
     const users = await Users.find({ _id: { $in: userIds } }).select(fieldsToSelect);
-    console.log("THong tin sau get bulk", users)
+    //console.log("THong tin sau get bulk", users)
     return users;
   } catch (error) {
     throw new Error('Error fetching users');

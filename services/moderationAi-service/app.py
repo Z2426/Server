@@ -15,7 +15,7 @@ CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
 def worker():
     while True:
         # Lấy task từ hàng đợi Redis
-        task_data = r.brpop('task_classify_post')  # Đợi và lấy task
+        task_data = r.brpop('content_processing_queue')  # Đợi và lấy task
         task = json.loads(task_data[1])  # Giải mã task
         process_task(task)  # Xử lý task
 

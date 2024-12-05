@@ -16,7 +16,8 @@ const reportSchema = new Schema({
             'Violence',             // Bạo lực
             'Nudity',               // Hình ảnh khiêu dâm
             'Hate Speech',          // Ngôn từ căm thù
-            'Illegal Content',      // Nội dung bất hợp pháp
+            'Illegal Content',
+            'ContentToxic',   // Nội dung bất hợp pháp
             'Other'                 // Lý do khác
         ]
     },

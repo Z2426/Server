@@ -19,6 +19,12 @@ const connectToRedis = async () => {
         console.error('Error connecting to Redis:', err);
     }
 };
+// Tạo client Redis sao chép cho các kênh khác nhau
+const createDuplicateClient = () => {
+    const duplicatedClient = redisClient.duplicate();  // Tạo bản sao của client Redis
+    duplicatedClient.connect();  // Kết nối lại với Redis
+    return duplicatedClient;
+};
 // Hàm subscribe và lắng nghe kênh, trả về kết quả
 const subscribeAndListen = async (channel) => {
     return new Promise((resolve, reject) => {
@@ -216,6 +222,7 @@ module.exports = {
     sendTaskToQueueSuggestService,
     subscribeAndListen,
     getValueSubscribe,
-    sendToQueue
+    sendToQueue,
+    createDuplicateClient
 
 };

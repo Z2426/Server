@@ -238,3 +238,26 @@ def classify_post(text_content=None, image_url=None):
 
     except Exception as e:
         return {"error": f"Error during classification: {e}"}
+def check_content_sensitivity(text_content=None, image_url=None):
+    try:
+        # Kiểm tra văn bản có nhạy cảm không
+        if text_content and text_content.strip():
+            # Kiểm tra độ độc hại trong văn bản
+            is_toxic = check_sensitive_text(text_content)
+            if is_toxic:
+                print("Văn bản chứa nội dung nhạy cảm.")
+                return True  # Trả về True ngay nếu văn bản nhạy cảm
+
+        # Nếu có URL ảnh, kiểm tra ảnh nhạy cảm
+        if image_url:
+            is_sensitive_image, label = check_sensitive_image(image_url)
+            if is_sensitive_image:
+                print(f"Ảnh chứa nội dung nhạy cảm: {label}")
+                return True  # Trả về True nếu ảnh nhạy cảm
+
+        # Nếu không có nội dung nhạy cảm trong cả văn bản và ảnh
+        return False
+
+    except Exception as e:
+        print(f"Error during content sensitivity check: {e}")
+        return False  # Trả về False nếu có lỗi trong quá trình kiểm tra

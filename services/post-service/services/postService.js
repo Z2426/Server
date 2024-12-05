@@ -1,9 +1,8 @@
 const Post = require('../models/Post');
 const Report = require('../models/reportModel.js')
 const mongoose = require('mongoose');
-const axios = require('axios'); // Import axios
 const requestWithCircuitBreaker = require('../shared/utils/circuitBreaker.js');
-const { sendTaskToQueueSuggestService, sendToQueue, connectToRedis } = require("../shared/redis/redisClient");
+const { sendToQueue, } = require("../shared/redis/redisClient");
 
 // Service lấy thông tin bài post theo id
 exports.getPostById = async (postId) => {
@@ -18,6 +17,26 @@ exports.getPostById = async (postId) => {
     throw error; // Ném lỗi ra ngoài để controller xử lý
   }
 };
+exports.approvePost = async (postId) => {
+  try {
+    // Kiểm tra xem bài viết có tồn tại không
+    const post = await Post.findById(postId);
+    if (!post) {
+      return { message: "Post not found" }; // Nếu không tìm thấy bài viết
+    }
+    // Cập nhật trạng thái của bài viết
+    post.status = 'approved';
+    await post.save(); // Kiểm tra kết quả lưu bài viết
+    // Xóa các báo cáo liên quan đến bài viết
+    await Report.deleteMany({ postId: postId });
+    return {
+      message: "Post has been approved and reports have been removed."
+    };
+  } catch (error) {
+    console.error('Error while approving post:', error);
+    return { message: "An error occurred while processing the request." };
+  }
+};
 // Xóa bài post nếu vi phạm nguyên tắc
 exports.deletePostIfViolating = async (postId) => {
   const deletedPost = await Post.findByIdAndDelete(postId);
@@ -29,22 +48,7 @@ exports.deletePostIfViolating = async (postId) => {
 
   return { message: "Post has been deleted due to violation of guidelines.", post: deletedPost };
 };
-// Gỡ bỏ báo cáo và giữ lại bài post
-exports.removeReportFromPost = async (postId) => {
-  const deletedReports = await Report.deleteMany({ postId: postId });
 
-  return { message: "Reports have been removed from the post.", reportCount: deletedReports.deletedCount };
-};
-// Hàm tạo báo cáo cho một bài post
-exports.createReport = async (postId, userId, reason) => {
-  const postExists = await Post.findById(postId);
-
-  if (!postExists) {
-    throw new Error('Post does not exist'); // Nếu không tồn tại, trả về lỗi
-  }
-  const report = new Report({ postId, userId, reason });
-  return await report.save();
-};
 
 
 
@@ -482,7 +486,7 @@ exports.createPost = async (postData) => {
       'image_url': newpost.image
     }
     sendToQueue('task_queue_suggest_service', 'suggest_friend_by_image', data)
-    sendToQueue('task_classify_post', 'classifyPost', data)
+    sendToQueue('content_processing_queue', 'checkContentSensitivity', data)
     return newpost
   } catch (error) {
     throw new Error('Error creating post: ' + error.message);
@@ -515,7 +519,7 @@ exports.updatePost = async (postId, updateData) => {
       'image_url': updatedPost.image
     }
     sendToQueue('task_queue_suggest_service', 'suggest_friend_by_image', data)
-    sendToQueue('task_classify_post', 'classifyPost', data)
+    sendToQueue('content_processing_queue', 'checkContentSensitivity', data)
     return updatedPost;
   } catch (error) {
     throw new Error('Error updating post: ' + error.message);
@@ -533,5 +537,42 @@ exports.deletePost = async (postId) => {
     return deletedPost;
   } catch (error) {
     throw new Error('Error deleting post: ' + error.message);
+  }
+};
+// Hàm tạo báo cáo cho một bài post
+exports.createReport = async (postId, userId, reason, isSensitive = false) => {
+  try {
+    // Kiểm tra xem bài viết có tồn tại không
+    const postExists = await Post.findById(postId);
+    if (!postExists) {
+      throw new Error('Post does not exist'); // Nếu không tồn tại, trả về lỗi
+    }
+    // Tạo báo cáo mới
+    const report = new Report({ postId, userId, reason });
+    await report.save(); // Lưu báo cáo vào cơ sở dữ liệu
+    console.log(`Báo cáo bài viết ${postId} bởi người dùng ${userId} đã được lưu.`);
+    // Kiểm tra tổng số báo cáo của bài viết
+    const reportCount = await Report.countDocuments({ postId: postId });
+    console.log(`Tổng số báo cáo cho bài viết ${postId}: ${reportCount}`);
+    if (reportCount > 10) {
+      // Nếu tổng số báo cáo > 10, đổi trạng thái bài viết thành 'rejected' và ẩn bài viết
+      await Post.updateOne(
+        { _id: postId },
+        { $set: { status: 'rejected', visibility: false } } // Ẩn bài viết
+      );
+      console.log(`Bài viết ${postId} đã bị từ chối (rejected) và ẩn khỏi hệ thống.`);
+    }
+    if (isSensitive) {
+      // Cập nhật trạng thái bài viết là "violated" nếu phát hiện nội dung nhạy cảm
+      await Post.updateOne(
+        { _id: postId },
+        { $set: { status: 'rejected' } }
+      );
+      console.log(`Bài viết ${postId} đã vi phạm nội dung nhạy cảm và đã được xử lý.`);
+    }
+    return report; // Trả về báo cáo đã được tạo
+  } catch (error) {
+    console.error('Lỗi khi tạo báo cáo:', error);
+    throw error; // Ném lỗi nếu có
   }
 };

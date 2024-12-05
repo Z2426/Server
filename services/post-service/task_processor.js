@@ -1,6 +1,9 @@
-const { redisClient } = require("./shared/redis/redisClient");
+const { createDuplicateClient } = require("./shared/redis/redisClient"); // Client Redis ban đầu
 const { handleUserInteraction } = require("./shared/redis/interactionAndWeightCalculator");
 const { markPostAsViewed } = require("./services/postService");
+const { createReport } = require('./services/postService');
+
+
 
 // Hàm xử lý task từ hàng đợi
 const processTaskFromQueue = async () => {
@@ -8,9 +11,12 @@ const processTaskFromQueue = async () => {
 
     while (true) {
         try {
-            // Chờ và lấy task từ hàng đợi "process_post" (BLPOP chờ đến khi có dữ liệu)
-            const taskData = await redisClient.blPop('process_post', 0); // Tham số 0: chờ vô thời hạn
+            // Tạo client Redis sao chép cho kênh bị tắc (ví dụ: "process_post")
+            const redisClient = createDuplicateClient();
 
+
+            // Xử lý task từ kênh "process_post" (BLPOP chờ đến khi có dữ liệu)
+            const taskData = await redisClient.blPop('process_post', 0); // Chờ task vô thời hạn
             if (taskData) {
                 const message = taskData.element;  // `element` chứa dữ liệu của task
                 const task = JSON.parse(message);  // Chuyển đổi chuỗi JSON thành đối tượng
@@ -19,6 +25,7 @@ const processTaskFromQueue = async () => {
                 let retries = 3;
                 let success = false;
 
+                // Thử lại nếu có lỗi
                 while (retries > 0 && !success) {
                     try {
                         // Xử lý task tùy theo action
@@ -33,6 +40,14 @@ const processTaskFromQueue = async () => {
                             );
                             success = true;
                         }
+
+                        if (task.action === 'processvioletpost') {
+                            console.log("Đang xử lý bài post violet...");
+                            console.log(task.data);
+                            createReport(task.data.post_id, task.data.user_id, "ContentToxic", isSensitive = true)
+                            success = true;
+                        }
+
                     } catch (error) {
                         console.error('Lỗi khi xử lý task:', error);
                         retries--;
