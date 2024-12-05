@@ -37,37 +37,40 @@ def translate(src, dest, text):
 
 # Function to generate text based on a prompt
 def generate_text(prompt):
-    # Check if the prompt is in Vietnamese
-    if is_vietnamese(prompt):
-        # Translate the Vietnamese prompt to English
-        prompt = translate('vi', 'en', prompt)
+    # Kiểm tra nếu đầu vào là tiếng Việt
+    is_input_vietnamese = is_vietnamese(prompt)
     
-    print(f"Processing prompt: {prompt}")
+    # Nếu là tiếng Việt, dịch sang tiếng Anh để xử lý
+    if is_input_vietnamese:
+        prompt_translated = translate('vi', 'en', prompt)
+    else:
+        prompt_translated = prompt
     
-    # Encode the input prompt
-    inputs = tokenizer(prompt, return_tensors="pt")
+    print(f"Processing prompt: {prompt_translated}")
     
-    # Generate text based on the prompt
+    # Mã hóa đầu vào
+    inputs = tokenizer(prompt_translated, return_tensors="pt")
+    
+    # Sinh văn bản dựa trên prompt
     output = model.generate(
         inputs["input_ids"],
-        max_length=1000,
+        max_length=800,
         num_return_sequences=1,
-        no_repeat_ngram_size=2,
-        temperature=0.3,
+        no_repeat_ngram_size=3,
+        temperature=0.2,
         top_k=50,
-        top_p=0.95,
+        top_p=0.9,
         do_sample=False
     )
     
-    # Decode the output into text
+    # Giải mã văn bản đầu ra
     generated_text = tokenizer.decode(output[0], skip_special_tokens=True)
     
-    # If the generated text is in English, translate it back to Vietnamese
-    if not is_vietnamese(generated_text):
+    # Nếu đầu vào là tiếng Việt, dịch văn bản sinh ra trở lại tiếng Việt
+    if is_input_vietnamese:
         generated_text = translate('en', 'vi', generated_text)
     
     return generated_text
-
 # Function to generate an image based on a prompt
 def generate_image(prompt):
     # Check if the prompt is in Vietnamese

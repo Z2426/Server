@@ -2,8 +2,6 @@ const axios = require('axios');
 const Post = require('../models/Post');
 exports.getNewsfeed = async (userId, page = 1, limit = 10) => {
     try {
-        console.log("NEWFEEDS");
-
         // Lấy bài viết mới nhất
         const latestPosts = await Post.aggregate([
             {
@@ -18,7 +16,6 @@ exports.getNewsfeed = async (userId, page = 1, limit = 10) => {
             { $skip: (page - 1) * limit }, // Phân trang
             { $limit: limit }, // Lấy tối đa limit bài viết
         ]);
-        console.log(latestPosts);
 
         // Lấy bài viết ngẫu nhiên
         const randomPosts = await Post.aggregate([

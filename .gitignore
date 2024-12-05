@@ -1,3 +1,4 @@
 .env
 services/user-service/.env
 services/post-service/.env
+services/service-suggest/requirements.txt

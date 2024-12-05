@@ -1,18 +1,18 @@
-const { redisClient, redisSubscriber, connectToRedis, sendMessageToRedis } = require("./shared/redis/redisClient");
+const { redisClient } = require("./shared/redis/redisClient");
 const { handleUserInteraction } = require("./shared/redis/interactionAndWeightCalculator");
-const { markPostAsViewed } = require("./services/postService")
-// Tạo Redis Publisher (client dùng để push dữ liệu vào hàng đợi)
-const publisher = redisClient.duplicate();
-// Tạo Redis Subscriber (client dùng để lắng nghe hàng đợi)
-const subscriber = redisClient.duplicate();
+const { markPostAsViewed } = require("./services/postService");
+
 // Hàm xử lý task từ hàng đợi
 const processTaskFromQueue = async () => {
-    try {
-        console.log('Worker đã sẵn sàng để xử lý các task từ hàng đợi.');
+    console.log('Worker đã sẵn sàng để xử lý các task từ hàng đợi.');
 
-        // Lắng nghe hàng đợi "process_post" để xử lý task
-        subscriber.on('message', async (channel, message) => {
-            try {
+    while (true) {
+        try {
+            // Chờ và lấy task từ hàng đợi "process_post" (BLPOP chờ đến khi có dữ liệu)
+            const taskData = await redisClient.blPop('process_post', 0); // Tham số 0: chờ vô thời hạn
+
+            if (taskData) {
+                const message = taskData.element;  // `element` chứa dữ liệu của task
                 const task = JSON.parse(message);  // Chuyển đổi chuỗi JSON thành đối tượng
                 console.log(`Nhận task từ hàng đợi: ${task.task_id}`);
 
@@ -41,29 +41,16 @@ const processTaskFromQueue = async () => {
                             await new Promise(resolve => setTimeout(resolve, 2000));  // Đợi 2 giây trước khi thử lại
                         } else {
                             console.log('Retry đã hết, đưa task vào hàng đợi lỗi.');
-                            await redisClient.rpush('error_queue', JSON.stringify(task));  // Đẩy task lỗi vào hàng đợi error
+                            await redisClient.rPush('error_queue', JSON.stringify(task));  // Đẩy task lỗi vào hàng đợi error
                         }
                     }
                 }
-            } catch (error) {
-                console.error('Lỗi khi nhận và xử lý task:', error);
             }
-        });
-
-        // Subscribe đến hàng đợi "process_post"
-        subscriber.subscribe('process_post', (err, count) => {
-            if (err) {
-                console.error('Lỗi khi subscribe hàng đợi:', err);
-            } else {
-                console.log(`Đã subscribe ${count} channel.`);
-            }
-        });
-
-    } catch (error) {
-        console.error('Lỗi trong quá trình xử lý task:', error);
+        } catch (error) {
+            console.error('Lỗi trong quá trình xử lý task:', error);
+        }
     }
 };
-
 
 module.exports = {
     processTaskFromQueue

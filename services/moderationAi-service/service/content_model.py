@@ -28,7 +28,27 @@ sensitive_labels = [
     "animal cruelty", "domestic violence", "bullying", "abortion", "explosion", "poison",
     "addiction", "gang violence", "extremism", "hostage", "harassment", "racism", 
     "sex trafficking", "human trafficking", "human rights violations", "sexually explicit", 
-    "extreme violence", "sexual abuse", "brutality", "crimes against humanity", "child pornography"
+    "extreme violence", "sexual abuse", "brutality", "crimes against humanity", "child pornography",
+    "pedophilia", "incest", "hate speech", "hate crime", "arson", "forced labor", "slave trade", 
+    "smuggling", "cyberbullying", "homophobia", "xenophobia", "misogyny", "misandry", 
+    "death threat", "necrophilia", "sadism", "sexual harassment", "verbal abuse", 
+    "physical abuse", "mental abuse", "psychological torture", "bombing", "lynching", 
+    "police brutality", "honor killing", "forced marriage", "child exploitation", 
+    "body shaming", "gaslighting", "cult abuse", "revenge porn", "blackmail", 
+    "pornography", "sexual exploitation", "military violence", "chemical weapons", 
+    "biological weapons", "organ trafficking", "ritual abuse", "witch hunt", 
+    "serial killer", "organized crime", "prostitution", "forced prostitution", 
+    "child soldier", "genital mutilation", "ethnic cleansing", "serial abuse", 
+    "hate propaganda", "violent threat", 
+    # Bổ sung mới
+    "supernatural", "demon", "zombie", "monster", "possession", "poltergeist", 
+    "exorcism", "vampire", "werewolf", "mutant", "decapitation", "dismemberment", 
+    "burnt body", "rotting flesh", "deformed", "undead", "corpse", "skull", 
+    "haunting", "ghost", "nightmare", "screaming", "creepy", "shadow", 
+    "darkness", "phantom", "specter", "cursed", "macabre", "jump scare", 
+    "ritual murder", "occult", "dark ritual", "body horror", "flesh eating", 
+    "demonic possession", "creature attack", "haunted house", "satanic symbol", 
+    "witchcraft", "ghoul", "necromancy"
 ]
 #TOPIC CLASSIFY POST
 # List of topics for classification

@@ -51,17 +51,18 @@ const createSocketServer = (server) => {
             try {
                 console.log('Received interactpost:', data);
                 // Kiểm tra dữ liệu đầu vào
-                if (!data.userId || !data.friendId || !data.postId || !data.postCategory) {
+                if (!data.user_id || !data.friendId || !data.post_id || !data.post_category) {
                     console.error('Invalid data received:', data);
                     return;
                 }
                 // Tạo taskData
                 const taskData = {
-                    userId: data.userId,
+                    userId: data.user_id,
                     friendId: data.friendId,
-                    postId: data.postId,
-                    postCategory: data.postCategory,
+                    postId: data.post_id,
+                    postCategory: data.post_category,
                 };
+                console.log("task", taskData)
                 // Gửi tác vụ vào hàng đợi
                 await sendToQueue('process_post', 'handleUserInteraction', taskData);
             } catch (error) {

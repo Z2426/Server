@@ -45,9 +45,13 @@ exports.createReport = async (postId, userId, reason) => {
   const report = new Report({ postId, userId, reason });
   return await report.save();
 };
+
+
+
+
 // Hàm lấy danh sách báo cáo
 exports.getReportedPosts = async () => {
-  console.log("XEM TJONG TIN BAI POSTS")
+  // console.log("XEM TJONG TIN BAI POSTS")
   return await Report.aggregate([
     {
       $group: {
@@ -470,7 +474,7 @@ exports.createPost = async (postData) => {
   try {
     const post = new Post(filteredPostData);
     const newpost = await post.save();
-    console.log("da gui du lieu")
+    // console.log("da gui du lieu")
     var data = {
       'user_id': newpost.userId,
       'post_id': newpost._id,
