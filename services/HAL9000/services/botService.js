@@ -1,109 +1,13 @@
 require('dotenv').config();
 const axios = require('axios');
-const requestWithCircuitBreaker = require('../shared/utils/circuitBreaker.js');
-const findUser = async (criteria) => {
-    const apiUrl = `${process.env.URL_USER_SERVICE}/find-users`;  // Endpoint của API tìm kiếm người dùng
-    try {
-        // Gửi yêu cầu POST với dữ liệu criteria để tìm người dùng
-        const response = await axios.get(apiUrl, { criteria });
-
-        if (response.status === 200) {
-            // Giả sử API trả về danh sách người dùng trong response.data.users
-            return response.data.data;  // Trả về danh sách người dùng
-        } else {
-            throw new Error('User search failed');
-        }
-    } catch (error) {
-        console.error('Error finding users:', error.message);
-        throw new Error('User search failed');
-    }
-};
-// Hàm xử lý tìm kiếm người dùng, chỉ lấy các key cần thiết từ inputData
-const processInputFindUser = (inputData) => {
-    const criteria = {};
-
-    // Các key cần lọc
-    const allowedKeys = ['age', 'name', 'workplace', 'hobby', 'address', 'province'];
-
-    // Ánh xạ các key từ dữ liệu đầu vào sang key sử dụng trong query
-    const fieldMappings = {
-        "ADDRESS:ADDRESS": "address",
-        "AGE:AGE": "age",
-        "HOBBY:HOBBY": "hobby",
-        "NAME:NAME": "name",
-        "Province:Province": "province",
-        "SCHOOL:SCHOOL": "school",
-        "WORKPLACE:WORKPLACE": "workplace"
-    };
-
-    // Duyệt qua tất cả các key trong inputData
-    for (const key in inputData) {
-        // Kiểm tra key có trong allowedKeys và fieldMappings
-        if (allowedKeys.includes(fieldMappings[key]) && inputData[key]) {
-            criteria[fieldMappings[key]] = inputData[key]; // Thêm vào criteria nếu key hợp lệ và có giá trị
-        }
-    }
-
-    return criteria;
-};
-
-// Hàm lấy entity có độ tin cậy > 0.9
-function filterEntitiesByConfidence(entities, confidenceThreshold = 0.9) {
-    const filteredEntities = {};
-
-    for (const key in entities) {
-        if (entities.hasOwnProperty(key)) {
-            // Filter entities with confidence > confidenceThreshold and map to their values
-            filteredEntities[key] = entities[key]
-                .filter(entity => entity.confidence > confidenceThreshold) // Filter based on confidence
-                .map(entity => entity.value); // Extract the value if confidence is above the threshold
-        }
-    }
-
-    return filteredEntities;
-}
-
-// Hàm tạo content(có thể gọi API bên ngoài)
-const generateText = async (prompt) => {
-    const apiUrl = `${process.env.URL_SUGGEST_SERVICE}/generate-text`;
-    try {
-        const response = await axios.post(apiUrl, { prompt });
-        if (response.status === 200) {
-            return response.data;
-        } else {
-            throw new Error('Image generation failed');
-        }
-    } catch (error) {
-        console.error('Error generating image:', error.message);
-        throw new Error('Image generation failed');
-    }
-};
-// Hàm tạo ảnh (có thể gọi API bên ngoài)
-const generateImage = async (prompt) => {
-    const apiUrl = `${process.env.URL_SUGGEST_SERVICE}/generate-image`;  // Endpoint của API tạo hình ảnh
-    try {
-        const response = await axios.post(apiUrl, { prompt });
-        if (response.status === 200) {
-            // Giả sử API trả về hình ảnh dưới dạng base64 trong response.data.image
-            return response.data.image;  // Trả về chuỗi base64 của hình ảnh
-        } else {
-            throw new Error('Image generation failed');
-        }
-    } catch (error) {
-        console.error('Error generating image:', error.message);
-        throw new Error('Image generation failed');
-    }
-};
-
+const { findUser, processInputFindUser, filterEntitiesByConfidence, generateText, generateImage } = require('../utils/handleApi.js')
 exports.aiRequestHandler = async (prompt) => {
     const tokenWitAi = process.env.TOKEN_WITAI;
     if (!tokenWitAi) {
         console.error('Wit.ai token is missing. Please check your .env configuration.');
         throw new Error('Wit.ai token is not defined');
     }
-
     const witApiUrl = `https://api.wit.ai/message?v=20240304&q=${encodeURIComponent(prompt)}`;
-
     try {
         // Gọi API Wit.ai để nhận thông tin về intents
         const response = await axios.get(witApiUrl, {
@@ -111,15 +15,10 @@ exports.aiRequestHandler = async (prompt) => {
                 Authorization: `Bearer ${tokenWitAi}`,
             },
         });
-
         // Lấy thông tin về intents và entities từ phản hồi
         const { intents, entities, text } = response.data;
         console.log("truoc khi loc")
         console.log(entities)
-        // Extract values from each entity
-        // Extract values from each entity
-
-        // Call the function
         const filteredEntities = filterEntitiesByConfidence(entities, 0.9);
         console.log("SAU khi loc")
         console.log(filteredEntities)

@@ -72,23 +72,7 @@ const processInputFindUser = (inputData) => {
     return criteria;
 };
 
-// Ví dụ dữ liệu đầu vào
-const inputData = {
-    "ADDRESS:ADDRESS": "123 Main Street",
-    "AGE:AGE": "25",
-    "HOBBY:HOBBY": "Chơi game",
-    "NAME:NAME": "John Doe",
-    "Province:Province": "Hanoi",
-    "SCHOOL:SCHOOL": "Tech University",
-    "WORKPLACE:WORKPLACE": "Tech Corp"
-};
-
-// Sử dụng hàm xử lý
-const criteria = processInputFindUser(inputData);
-console.log(criteria);
-
-
-const PORT = process.env.BOT_PORT || 3007;
+const PORT = process.env.BOT_PORT || 4000;
 app.listen(PORT, () => {
     console.log(`User service running on port ${PORT}`);
 });
