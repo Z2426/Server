@@ -3,6 +3,7 @@ const userController = require('../controllers/userController');
 const suggestFriends = require('../controllers/suggestFriends')
 const authMiddleware = require('../middleware/authMiddleware')
 const router = express.Router();
+router.get('/find-users', userController.finUserByInfo)
 router.get('/search', userController.searchUsers);
 // SUGGEST 
 router.get('/suggested-friends', authMiddleware.verifyTokenMiddleware, suggestFriends.getSuggestedFriends);

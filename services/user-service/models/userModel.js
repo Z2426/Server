@@ -29,7 +29,6 @@ const userSchema = new mongoose.Schema({
   },
   videoUrl: { type: String },
   cover_photo: { type: String },
-  address: { type: String },
   profession: { type: String },
   gender: {
     type: String,

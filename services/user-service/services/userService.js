@@ -3,6 +3,54 @@ const Users = require('../models/userModel'); // Đảm bảo đường dẫn ch
 const { checkPassword, hashPassword, generateToken, verifyToken } = require("../utils/index");  // Đảm bảo đường dẫn chính xác
 const notification = require('../shared/utils/notification')
 const { sendTaskToQueueSuggestService } = require("../shared/redis/redisClient");
+// Hàm tìm kiếm user
+exports.findUsers = async (criteria) => {
+  const query = {};
+  // Xử lý tham số age
+  if (criteria.age) {
+    const ageStr = criteria.age.replace(/\D+/g, ' ').trim(); // Loại bỏ ký tự không phải số, thay thế bằng dấu cách
+    const ageParts = ageStr.split(' ');
+    const currentYear = new Date().getFullYear();
+    if (ageParts.length === 1) { // Trường hợp tuổi duy nhất, ví dụ: '25' hoặc '25 tuổi'
+      const age = parseInt(ageParts[0], 10);
+      const startOfBirthYear = new Date(currentYear - age, 0, 1);
+      const endOfBirthYear = new Date(currentYear - age, 11, 31);
+      query.birthDate = { $gte: startOfBirthYear, $lte: endOfBirthYear };
+
+    } else if (ageParts.length === 2) { // Trường hợp khoảng tuổi, ví dụ: '24-25'
+      const ageFrom = parseInt(ageParts[0], 10);
+      const ageTo = parseInt(ageParts[1], 10);
+      const startOfBirthYear = new Date(currentYear - ageTo, 0, 1);
+      const endOfBirthYear = new Date(currentYear - ageFrom, 11, 31);
+      query.birthDate = { $gte: startOfBirthYear, $lte: endOfBirthYear };
+    }
+  }
+
+  // Tìm kiếm theo tên (cả firstName và lastName)
+  if (criteria.name) {
+    query.$or = [
+      { firstName: { $regex: criteria.name, $options: 'i' } }, // Không phân biệt hoa-thường
+      { lastName: { $regex: criteria.name, $options: 'i' } }
+    ];
+  }
+
+  // Tìm kiếm theo các trường chuỗi khác
+  ['workplace', 'province', 'school', 'address'].forEach(field => {
+    if (criteria[field]) {
+      query[field] = { $regex: criteria[field], $options: 'i' };
+    }
+  });
+
+  // Thực hiện truy vấn MongoDB
+  try {
+    const users = await Users.find(query).select('firstName lastName profileUrl');
+    return users;
+  } catch (error) {
+    console.error("Error finding users:", error);
+    throw error;
+  }
+};
+
 exports.isFriendOf = async (userId, potentialFriendId) => {
   try {
     // Tìm người dùng cần kiểm tra

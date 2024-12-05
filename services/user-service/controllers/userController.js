@@ -1,5 +1,36 @@
 const userService = require('../services/userService');
-const mongoose = require('mongoose');  // Đảm bảo khai báo ở đây
+const mongoose = require('mongoose');  // Đảm bảo khai báo ở đây\
+exports.finUserByInfo = async (req, res) => {
+  try {
+    // Lấy các tham số tìm kiếm từ query string
+    const { age, name, workplace, province, school, address } = req.query;
+    // Tạo object criteria để truyền vào hàm findUsers
+    const criteria = {
+      age: age,
+      name: name,
+      workplace: workplace,
+      province: province,
+      school: school,
+      address: address
+    };
+
+    // Gọi hàm tìm kiếm user
+    const users = await userService.findUsers(criteria);
+
+    // Gửi kết quả về client
+    res.status(200).json({
+      success: true,
+      data: users
+    });
+  } catch (error) {
+    // Xử lý lỗi
+    console.error('Error in find-users controller:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+}
 exports.searchUsers = async (req, res) => {
   const { keyword } = req.query; // Lấy từ khóa từ query string
   console.log(keyword)

@@ -8,7 +8,10 @@ exports.AIGenerationAndSearchController = async (req, res) => {
         }
         // Gọi hàm handlerAI xử lý
         const result = await aiRequestHandler(prompt);
-
+        if (result)
+            if (result.message === "input invalid") {
+                return res.status(400).json({ error: 'Vui lòng cung cấp thông tin rõ ràng hơn để tôi có thể hiểu rõ hơn về yêu cầu của bạn.' });
+            }
         // Kiểm tra type và trả về kết quả phù hợp
         // Kiểm tra type và trả về kết quả phù hợp
         if (result.type === 'image_prompt') {

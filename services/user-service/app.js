@@ -5,7 +5,7 @@ const adminRoutes = require('./routes/adminRoutes.js')
 const statisticsRoute = require('./routes/statsRoutes.js')
 const errorHandler = require('./shared/middleware/errorHandler.js');
 const { connectToRedis, sendToQueue } = require("./shared/redis/redisClient");
-const { handleUserInteraction } = require("./shared/redis/redisHandler");
+const { findUsers } = require('./services/userService.js')
 const { listenForEvents } = require("./eventListener.js")
 require('./shared/middleware/logRequest.js');
 require('./shared/utils/logger.js');

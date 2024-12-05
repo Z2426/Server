@@ -1,6 +1,52 @@
 require('dotenv').config();
 const axios = require('axios');
 const requestWithCircuitBreaker = require('../shared/utils/circuitBreaker.js');
+const findUser = async (criteria) => {
+    const apiUrl = `${process.env.URL_USER_SERVICE}/find-users`;  // Endpoint của API tìm kiếm người dùng
+    try {
+        // Gửi yêu cầu POST với dữ liệu criteria để tìm người dùng
+        const response = await axios.get(apiUrl, { criteria });
+
+        if (response.status === 200) {
+            // Giả sử API trả về danh sách người dùng trong response.data.users
+            return response.data.data;  // Trả về danh sách người dùng
+        } else {
+            throw new Error('User search failed');
+        }
+    } catch (error) {
+        console.error('Error finding users:', error.message);
+        throw new Error('User search failed');
+    }
+};
+// Hàm xử lý tìm kiếm người dùng, chỉ lấy các key cần thiết từ inputData
+const processInputFindUser = (inputData) => {
+    const criteria = {};
+
+    // Các key cần lọc
+    const allowedKeys = ['age', 'name', 'workplace', 'hobby', 'address', 'province'];
+
+    // Ánh xạ các key từ dữ liệu đầu vào sang key sử dụng trong query
+    const fieldMappings = {
+        "ADDRESS:ADDRESS": "address",
+        "AGE:AGE": "age",
+        "HOBBY:HOBBY": "hobby",
+        "NAME:NAME": "name",
+        "Province:Province": "province",
+        "SCHOOL:SCHOOL": "school",
+        "WORKPLACE:WORKPLACE": "workplace"
+    };
+
+    // Duyệt qua tất cả các key trong inputData
+    for (const key in inputData) {
+        // Kiểm tra key có trong allowedKeys và fieldMappings
+        if (allowedKeys.includes(fieldMappings[key]) && inputData[key]) {
+            criteria[fieldMappings[key]] = inputData[key]; // Thêm vào criteria nếu key hợp lệ và có giá trị
+        }
+    }
+
+    return criteria;
+};
+
 // Hàm lấy entity có độ tin cậy > 0.9
 function filterEntitiesByConfidence(entities, confidenceThreshold = 0.9) {
     const filteredEntities = {};
@@ -80,11 +126,11 @@ exports.aiRequestHandler = async (prompt) => {
         console.log(filteredEntities);
         if (!intents || intents.length === 0) {
             console.log('No intents detected.');
-            return { message: "Vui lòng cung cấp thông tin rõ ràng hơn để tôi có thể hiểu rõ hơn về yêu cầu của bạn.", text };
+            return { message: "input invalid", text };
         }
         if (Object.keys(entities).length === 0 || !Object.values(entities).some(arr => arr.length > 0)) {
             console.log('No enities detected.');
-            return { message: "Vui lòng cung cấp thông tin rõ ràng hơn để tôi có thể hiểu rõ hơn về yêu cầu của bạn.", text };
+            return { message: "input invalid", text };
         }
 
         // Xác định intent chính với độ tin cậy cao nhất
@@ -96,6 +142,9 @@ exports.aiRequestHandler = async (prompt) => {
         switch (primaryIntent.name) {
             case 'find_person':
                 result.type = "find person";
+                const criteria = processInputFindUser(filteredEntities)
+                console.log(criteria);
+                result.info = await findUser(criteria)
                 break;
             case 'text_prompt':
                 console.log("text_prompt", filteredEntities['textSubject:textSubject']);
