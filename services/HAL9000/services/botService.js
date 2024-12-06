@@ -9,20 +9,13 @@ exports.aiRequestHandler = async (prompt) => {
     }
     const witApiUrl = `https://api.wit.ai/message?v=20240304&q=${encodeURIComponent(prompt)}`;
     try {
-        // Gọi API Wit.ai để nhận thông tin về intents
         const response = await axios.get(witApiUrl, {
             headers: {
                 Authorization: `Bearer ${tokenWitAi}`,
             },
         });
-        // Lấy thông tin về intents và entities từ phản hồi
         const { intents, entities, text } = response.data;
-        console.log("truoc khi loc")
-        console.log(entities)
         const filteredEntities = filterEntitiesByConfidence(entities, 0.9);
-        console.log("SAU khi loc")
-        console.log(filteredEntities)
-        console.log(filteredEntities);
         if (!intents || intents.length === 0) {
             console.log('No intents detected.');
             return { message: "input invalid", text };
@@ -31,18 +24,14 @@ exports.aiRequestHandler = async (prompt) => {
             console.log('No enities detected.');
             return { message: "input invalid", text };
         }
-
-        // Xác định intent chính với độ tin cậy cao nhất
         const primaryIntent = intents[0];
         console.log(`Detected intent: ${primaryIntent.name} with confidence ${primaryIntent.confidence}`);
-
-        // Xử lý dựa trên tên intent
         let result = { type: "other" };
         switch (primaryIntent.name) {
             case 'find_person':
                 result.type = "find person";
                 const criteria = processInputFindUser(filteredEntities)
-                console.log(criteria);
+                console.log("start process find person");
                 result.info = await findUser(criteria)
                 break;
             case 'text_prompt':
@@ -52,17 +41,14 @@ exports.aiRequestHandler = async (prompt) => {
                 console.log(result.text)
                 break;
             case 'image_prompt':
-
                 console.log("image_prompt");
-                result.type = "image prompt";  // Đặt loại kết quả là "image prompt"
+                result.type = "image prompt";
 
                 try {
-                    // Gọi hàm generateImage với prompt để tạo hình ảnh
-                    const image = await generateImage(prompt);  // Gọi hàm tạo hình ảnh
-                    result.image = image;  // Lưu hình ảnh vào kết quả trả về
-                    console.log("Tạo ảnh thành công ")
+                    const image = await generateImage(prompt);
+                    result.image = image;
+                    console.log("generate image on sucess ")
                 } catch (error) {
-                    // Nếu có lỗi, log ra và trả về kết quả lỗi
                     console.error('Error generating image:', error.message);
                     result = { message: 'Failed to generate image', error: error.message };
                 }
@@ -71,10 +57,8 @@ exports.aiRequestHandler = async (prompt) => {
                 console.log(`Unhandled intent: ${primaryIntent.name}`);
                 result = { message: `Intent ${primaryIntent.name} is not supported.`, text };
         }
-
         return result;
     } catch (error) {
-        // Xử lý lỗi nếu có
         console.error('Error fetching data from Wit.ai:', error.response ? error.response.data : error.message);
         throw new Error(`Error fetching data from Wit.ai: ${error.message}`);
     }

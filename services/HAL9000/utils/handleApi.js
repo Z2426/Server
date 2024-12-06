@@ -14,7 +14,6 @@ exports.findUser = async (criteria) => {
         throw new Error('User search failed');
     }
 };
-
 exports.processInputFindUser = (inputData) => {
     const criteria = {};
     const allowedKeys = ['age', 'name', 'workplace', 'hobby', 'address', 'province'];
@@ -27,20 +26,15 @@ exports.processInputFindUser = (inputData) => {
         "SCHOOL:SCHOOL": "school",
         "WORKPLACE:WORKPLACE": "workplace"
     };
-
     for (const key in inputData) {
         if (allowedKeys.includes(fieldMappings[key]) && inputData[key]) {
             criteria[fieldMappings[key]] = inputData[key];
         }
     }
-
     return criteria;
 };
-
-
 exports.filterEntitiesByConfidence = (entities, confidenceThreshold = 0.9) => {
     const filteredEntities = {};
-
     for (const key in entities) {
         if (entities.hasOwnProperty(key)) {
             filteredEntities[key] = entities[key]
@@ -48,10 +42,8 @@ exports.filterEntitiesByConfidence = (entities, confidenceThreshold = 0.9) => {
                 .map(entity => entity.value);
         }
     }
-
     return filteredEntities;
 }
-
 exports.generateText = async (prompt) => {
     const apiUrl = `${process.env.URL_SUGGEST_SERVICE}/generate-text`;
     try {
@@ -66,7 +58,6 @@ exports.generateText = async (prompt) => {
         throw new Error('Text generation failed');
     }
 };
-
 exports.generateImage = async (prompt) => {
     const apiUrl = `${process.env.URL_SUGGEST_SERVICE}/generate-image`;
     try {

@@ -1,41 +1,30 @@
 const { aiRequestHandler } = require('../services/botService')
 exports.AIGenerationAndSearchController = async (req, res) => {
     const prompt = req.query.prompt
-    console.log(prompt)
     try {
         if (!prompt) {
             return res.status(400).json({ error: 'prompt is required' });
         }
-        // Gọi hàm handlerAI xử lý
         const result = await aiRequestHandler(prompt);
         if (result)
             if (result.message === "input invalid") {
-                return res.status(400).json({ error: 'Vui lòng cung cấp thông tin rõ ràng hơn để tôi có thể hiểu rõ hơn về yêu cầu của bạn.' });
+                return res.status(400).json({ error: 'Please provide more clear information so I can better understand your request.' });
             }
-        // Kiểm tra type và trả về kết quả phù hợp
-        // Kiểm tra type và trả về kết quả phù hợp
         if (result.type === 'image_prompt') {
-            console.log("Da xu li tao anh")
-            // Kiểm tra xem dữ liệu có phải là buffer hay Base64
+            console.log("Compelted process generate image")
             if (Buffer.isBuffer(result.image)) {
-                console.log('Buffer detected');
-                // Nếu dữ liệu là buffer, trả về ảnh dưới dạng buffer
-                res.setHeader('Content-Type', 'image/png'); // Thiết lập header cho ảnh PNG
-                return res.send(result.image); // Trả về ảnh dưới dạng buffer
+                res.setHeader('Content-Type', 'image/png');
+                return res.send(result.image);
             } else if (typeof result.image === 'string' && result.image.startsWith('data:image/png;base64,')) {
-                console.log('Base64 detected');
-                // Nếu dữ liệu là chuỗi Base64 hợp lệ
-                const base64Data = result.image.split(',')[1]; // Lấy phần base64 từ chuỗi
-                const imageBuffer = Buffer.from(base64Data, 'base64'); // Chuyển base64 thành buffer
-                res.setHeader('Content-Type', 'image/png'); // Thiết lập header cho ảnh PNG
-                return res.send(imageBuffer); // Trả về ảnh dưới dạng buffer
+                const base64Data = result.image.split(',')[1];
+                const imageBuffer = Buffer.from(base64Data, 'base64');
+                res.setHeader('Content-Type', 'image/png');
+                return res.send(imageBuffer);
             } else {
-                // Nếu dữ liệu không phải là buffer hay Base64 hợp lệ, trả về lỗi
                 return res.status(500).json({ error: 'Image data is not valid' });
             }
         }
         else {
-            // Trả về JSON cho các loại dữ liệu khác (text hoặc user_list)
             return res.json(result);
         }
     } catch (error) {
