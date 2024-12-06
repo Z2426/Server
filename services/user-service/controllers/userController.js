@@ -1,10 +1,12 @@
 const userService = require('../services/userService');
-const mongoose = require('mongoose');  // Đảm bảo khai báo ở đây\
+const mongoose = require('mongoose');
+
+/** ================================================
+ *                User Search and Retrieval
+ * ================================================ */
 exports.finUserByInfo = async (req, res) => {
   try {
-    // Lấy các tham số tìm kiếm từ query string
     const { age, name, workplace, province, school, address } = req.query;
-    // Tạo object criteria để truyền vào hàm findUsers
     const criteria = {
       age: age,
       name: name,
@@ -13,63 +15,50 @@ exports.finUserByInfo = async (req, res) => {
       school: school,
       address: address
     };
-
-    // Gọi hàm tìm kiếm user
     const users = await userService.findUsers(criteria);
-
-    // Gửi kết quả về client
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       data: users
     });
   } catch (error) {
-    // Xử lý lỗi
     console.error('Error in find-users controller:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: 'Internal server error'
     });
   }
 }
 exports.searchUsers = async (req, res) => {
-  const { keyword } = req.query; // Lấy từ khóa từ query string
-  console.log(keyword)
+  const { keyword } = req.query;
   try {
-    const users = await userService.searchUsersByKeyword(keyword); // Gọi service để tìm kiếm người dùng
-    return res.json(users); // Trả về danh sách người dùng tìm được
+    const users = await userService.searchUsersByKeyword(keyword);
+    return res.json(users);
   } catch (error) {
     console.error('Error searching users:', error.message);
-    return res.status(500).json({ message: 'Lỗi trong quá trình tìm kiếm người dùng' });
+    return res.status(500).json({ message: error.message });
   }
 };
 exports.getFriends = async (req, res) => {
   try {
     const { userId } = req.body.user;
     const { page = 1, limit = 10 } = req.query;
-
     const friendsData = await userService.getFriends(userId, parseInt(page), parseInt(limit));
-    res.status(200).json(friendsData);
+    return res.status(200).json(friendsData);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 };
 exports.getUsersBulk = async (req, res) => {
-  let { userIds } = req.query; // Retrieve userIds from query parameters
-  console.log("Danh sách user", userIds);
-
-  // Kiểm tra nếu userIds là chuỗi, thì tách nó thành mảng
+  let { userIds } = req.query;
   let userIdArray = [];
   if (typeof userIds === 'string') {
-    userIdArray = userIds.split(',').map(id => id.trim()); // Tách chuỗi và loại bỏ khoảng trắng
+    userIdArray = userIds.split(',').map(id => id.trim());
   } else if (Array.isArray(userIds)) {
-    userIdArray = userIds; // Nếu đã là mảng thì sử dụng trực tiếp
+    userIdArray = userIds;
   }
-  console.log("DA TEST GETUSER BULK")
   try {
     const users = await userService.getUsersByIds(userIdArray);
-    console.log("List user")
-    console.log(users)
     return res.json(users);
   } catch (error) {
     return res.status(500).json({ message: error.message });
@@ -77,9 +66,7 @@ exports.getUsersBulk = async (req, res) => {
 };
 exports.getUserById = async (req, res) => {
   try {
-    const userId = req.params.userId; // Extract userId from params
-
-    // Define allowed fields
+    const userId = req.params.userId;
     const allowedFields = [
       'firstName',
       'lastName',
@@ -92,28 +79,112 @@ exports.getUserById = async (req, res) => {
       'statusActive',
       'lastLogin'
     ];
-
-    // Validate the userId
     if (!mongoose.Types.ObjectId.isValid(userId)) {
       return res.status(400).json({ message: 'Invalid user ID' });
     }
-    // Call the service to get user by ID, passing the fields array
     const user = await userService.getUserById(userId, allowedFields);
     if (!user) return res.status(404).json({ message: 'User not found' });
-    res.status(200).json(user); // Return the user data
+    return res.status(200).json(user);
   } catch (error) {
     console.log(error)
-    res.status(400).json({ message: error.message });
+    return res.status(500).json({ message: error.message });
   }
 };
-exports.updateLoginAttempts = async (req, res) => {
-  const { loginAttempts, lastLogin, email } = req.body; // Lấy thông tin từ body
+/** ================================================
+ *                Friendship Management
+ * ================================================ */
+exports.getFollowing = async (req, res) => {
   try {
-    // Kiểm tra xem các trường cần thiết có được cung cấp không
+    const { userId } = req.body.user;
+    const following = await userService.getFollowing(userId);
+    return res.status(200).json({ following });
+  } catch (error) {
+    return res.status(404).json({ message: error.message });
+  }
+};
+exports.getFollowers = async (req, res) => {
+  try {
+    const { userId } = req.body.user;
+    const followers = await userService.getFollowers(userId);
+    return res.status(200).json({ followers });
+  } catch (error) {
+    return res.status(404).json({ message: error.message });
+  }
+};
+exports.toggleFollowUser = async (req, res) => {
+  try {
+    const { followedId } = req.params;
+    const followerId = req.body.user.userId;
+    const { followedUser, isFollowing } = await userService.toggleFollowUser(followerId, followedId);
+    const message = isFollowing ? "User followed successfully" : "User unfollowed successfully";
+    return res.status(200).json({ message, followedUser });
+  } catch (error) {
+    return res.status(400).json({ message: error.message });
+  }
+};
+
+exports.sendFriendRequest = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const senderId = req.body.user.userId;
+    if (senderId === userId) {
+      return res.status(400).json({ message: "You cannot send a friend request to yourself." });
+    }
+    const user = await userService.sendFriendRequest(userId, senderId);
+    return res.status(200).json({ message: "Friend request sent", user });
+  } catch (error) {
+    return res.status(400).json({ message: error.message });
+  }
+};
+exports.updateFriendRequest = async (req, res) => {
+  try {
+    const { requestId, newStatus } = req.body;
+    const { userId } = req.body.user;
+    if (!requestId || !newStatus || !userId) {
+      return res.status(400).json({
+        message: 'Missing required fields: requestId, newStatus, or userId.',
+      });
+    }
+    const result = await userService.updateFriendRequestStatus(userId, requestId, newStatus);
+    if (result.success) {
+      return res.status(200).json({
+        message: 'Update success',
+        request: result.request,
+      });
+    }
+    return res.status(400).json({
+      message: result.message,
+    });
+  } catch (error) {
+    console.error('Error updating friend request:', error);
+    return res.status(500).json({
+      message: 'An error occurred while updating the friend request status.',
+      error: error.message,
+    });
+  }
+};
+exports.getFriendRequests = async (req, res) => {
+  try {
+    const userId = req.body.user.userId;
+    const requests = await userService.getFriendRequests(userId);
+    return res.status(200).json(requests);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+
+
+/** ================================================
+ *                Authentication and Security
+ * ================================================ */
+exports.updateLoginAttempts = async (req, res) => {
+  const { loginAttempts, lastLogin, email } = req.body;
+  try {
     if (loginAttempts === undefined || !lastLogin) {
       return res.status(400).json({ message: "Login attempts and last login time are required!" });
     }
-    const updatedUser = await userService.updateLoginInfo(email, loginAttempts, lastLogin); // Gọi service để cập nhật thông tin
+    const updatedUser = await userService.updateLoginInfo(email, loginAttempts, lastLogin);
     return res.status(200).json({
       message: "Login information updated successfully!",
       user: updatedUser
@@ -122,7 +193,6 @@ exports.updateLoginAttempts = async (req, res) => {
     return res.status(500).json({ message: error.message });
   }
 };
-// Tìm kiếm người dùng dựa vào email
 exports.getUserByEmailWithPass = async (req, res) => {
   const { email } = req.body;
   try {
@@ -130,241 +200,137 @@ exports.getUserByEmailWithPass = async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-    res.status(200).json(user);
+    return res.status(200).json(user);
   } catch (error) {
-    console.error('Lỗi khi tìm người dùng:', error.message);
-    res.status(500).json({ message: 'Internal server error' });
+    console.error('Internal server error', error.message);
+    return res.status(500).json({ message: 'Internal server error' });
   }
 };
-
-// Cập nhật thông tin người dùng
-exports.updateUser = async (req, res) => {
-  const { email } = req.params;
-  const updateData = req.body;
-
-  try {
-    const user = await userService.updateUser(email, updateData);
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    res.status(200).json(user);
-  } catch (error) {
-    console.error('Lỗi khi cập nhật người dùng:', error.message);
-    res.status(500).json({ message: 'Internal server error' });
-  }
-};
-//verify account 
 exports.verifyAccount = async (req, res) => {
-  const { userId } = req.body.user; // Expecting the token in the request body
-  console.log(req.body)
+  const { userId } = req.body.user;
   try {
     const message = await userService.verifyAccount(userId);
-    res.status(200).json({ message });
+    return res.status(200).json({ message });
   } catch (error) {
-    res.status(401).json({ message: error.message }); // Changed status to 401 for invalid token or user not found
+    return res.status(401).json({ message: error.message });
   }
 };
-// API to request a password reset token
 exports.requestPasswordReset = async (req, res) => {
   try {
     const { email } = req.body;
-
-    // Generate reset token
     const token = await userService.generateResetToken(email);
-
-    // Here you would typically send the token to the user's email
-    // For simplicity, we'll just return the token in the response
-    res.status(200).json({ message: "Reset token generated", token });
+    return res.status(200).json({ message: "Reset token generated", token });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    return res.status(500).json({ message: error.message });
   }
 };
-
-// API to reset the password
 exports.resetPassword = async (req, res) => {
   try {
     const { email, newPassword, token } = req.body;
-    console.log(req.body)
-    // Call the user service to reset the password
     await userService.resetPassword(email, newPassword, token);
-
-    res.status(200).json({ message: "Password reset successful" });
+    return res.status(200).json({ message: "Password reset successful" });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    return res.status(500).json({ message: error.message });
   }
 };
 exports.changePassword = async (req, res) => {
   try {
     const { userId } = req.body.user;
     const { oldPassword, newPassword } = req.body;
-
     const result = await userService.changePassword(userId, oldPassword, newPassword);
-
-    res.status(200).json(result);
+    return res.status(200).json(result);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    return res.status(400).json({ message: error.message });
   }
 };
-exports.getFollowing = async (req, res) => {
-  try {
-    const { userId } = req.body.user;
-    const following = await userService.getFollowing(userId);
-    res.status(200).json({ following });
-  } catch (error) {
-    res.status(404).json({ message: error.message });
-  }
-};
-
-// Controller function to get the list of followers for this user
-exports.getFollowers = async (req, res) => {
-  try {
-    const { userId } = req.body.user;
-    const followers = await userService.getFollowers(userId);
-    res.status(200).json({ followers });
-  } catch (error) {
-    res.status(404).json({ message: error.message });
-  }
-};
-// Toggle follow/unfollow a user
-exports.toggleFollowUser = async (req, res) => {
-  try {
-    const { followedId } = req.params; // ID of the user to follow/unfollow
-    const followerId = req.body.user.userId; // ID of the current user (from token or session)
-
-    const { followedUser, isFollowing } = await userService.toggleFollowUser(followerId, followedId);
-    const message = isFollowing ? "User followed successfully" : "User unfollowed successfully";
-
-    res.status(200).json({ message, followedUser });
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-};
-exports.sendFriendRequest = async (req, res) => {
-  try {
-    const { userId } = req.params; // ID of the user to send the request to
-    const senderId = req.body.user.userId; // ID of the current user (from token or session)
-    // Check if the senderId and userId are the same
-    if (senderId === userId) {
-      return res.status(400).json({ message: "You cannot send a friend request to yourself." });
-    }
-
-    const user = await userService.sendFriendRequest(userId, senderId);
-    res.status(200).json({ message: "Friend request sent", user });
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-};
-
-exports.updateFriendRequest = async (req, res) => {
-  const { requestId, newStatus } = req.body; // Lấy thông tin từ body yêu cầu
-  const { userId } = req.body.user
-  console.log(userId)
-  const result = await userService.updateFriendRequestStatus(userId, requestId, newStatus);
-
-  if (result.success) {
-    return res.status(200).json({
-      message: 'Cập nhật trạng thái thành công.',
-      request: result.request,
-    });
-  }
-
-  return res.status(400).json({
-    message: result.message,
-  });
-};
-
-exports.getFriendRequests = async (req, res) => {
-  try {
-    const userId = req.body.user.userId; // ID of the current user (from token or session)
-    const requests = await userService.getFriendRequests(userId);
-    res.status(200).json(requests);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-};
-//console.log(userService); // Check if all functions are available
-// get list user blocked
 exports.getBlockedUsers = async (req, res) => {
   try {
-    const currentUserId = req.body.user.userId; // Assumes user ID is retrieved from token/session
-
+    const currentUserId = req.body.user.userId;
     const blockedUsers = await userService.getBlockedUsers(currentUserId);
-
     if (!blockedUsers) {
       return res.status(404).json({ message: "User not found or no blocked users" });
     }
-
-    res.status(200).json({ blockedUsers: blockedUsers.blockedUsers });
+    return res.status(200).json({ blockedUsers: blockedUsers.blockedUsers });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    return res.status(500).json({ message: error.message });
   }
 };
-// Controller function to toggle block/unblock
 exports.toggleBlockStatus = async (req, res) => {
   try {
-    const { userId } = req.params; // ID of the user to toggle block status
-    const currentUserId = req.body.user.userId; // ID of the current user (from token or session)
-
-    // Call the service to toggle block/unblock
+    const { userId } = req.params;
+    const currentUserId = req.body.user.userId;
     const message = await userService.toggleBlockStatus(currentUserId, userId);
-
-    res.status(200).json({ message });
+    return res.status(200).json({ message });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    return res.status(500).json({ message: error.message });
   }
 };
-// READ all users with optional field selection
+
+/** ================================================
+ *                 User Information Management
+ * ================================================ */
 exports.getAllUsers = async (req, res) => {
   const user = req.body.user
   try {
     if (user.role != "Admin") {
-      const error = new Error('Ban khong co quyen truy cap.');
-      error.statusCode = 403; // Mã lỗi 403 
-      throw error; // Ném lỗi
+      const error = new Error('You do not have access rights.');
+      error.statusCode = 403;
+      throw error;
     }
     const allowedFields = ['firstName', 'lastName', 'email', 'profileUrl'];
-    // Call the service to get all users, passing the fields parameter
     const users = await userService.getAllUsers(allowedFields);
-    res.status(200).json(users);
+    return res.status(200).json(users);
   } catch (error) {
     const statusCode = error.statusCode || 400;
-    res.status(statusCode).json({ message: error.message });
+    return res.status(statusCode).json({ message: error.message });
   }
 };
-
-
-// CREATE user
 exports.createUser = async (req, res) => {
   try {
     const user = await userService.createUser(req.body);
-    res.status(201).json(user);
+    return res.status(201).json(user);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    return res.status(400).json({ message: error.message });
   }
 };
-
-
-// UPDATE user
 exports.updateUser = async (req, res) => {
   try {
     const { userId } = req.body.user
     const user = await userService.updateUser(userId, req.body);
     if (!user) return res.status(404).json({ message: 'User not found' });
-    res.status(200).json(user);
+    return res.status(200).json(user);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    return res.status(400).json({ message: error.message });
   }
 };
-
-// DELETE user
 exports.deleteUser = async (req, res) => {
   try {
     const { userId } = req.body.user
     const user = await userService.deleteUser(userId);
     if (!user) return res.status(404).json({ message: 'User not found' });
-    res.status(200).json({ message: 'User deleted successfully' });
+    return res.status(200).json({ message: 'User deleted successfully' });
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    return res.status(400).json({ message: error.message });
   }
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

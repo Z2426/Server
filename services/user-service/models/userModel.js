@@ -79,6 +79,13 @@ const userSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
+userSchema.index({ email: 1 });  // Index on email to optimize lookups
+userSchema.index({ firstName: 1, lastName: 1 });  // Compound index on first and last name for search optimization
+userSchema.index({ role: 1 });  // Index on role for admin or user based queries
+userSchema.index({ statusActive: 1 });  // Index on statusActive for active user checks
+userSchema.index({ verified: 1 });  // Index on verified status
+userSchema.index({ birthDate: 1 });  // Index on birth date to quickly sort by age
+userSchema.index({ 'friendRequests.status': 1 });  // Index on friend request status
 const Users = mongoose.model("Users", userSchema);
 module.exports = Users;
 
