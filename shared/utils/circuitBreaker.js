@@ -1,38 +1,29 @@
-// middlewares/circuitBreaker.js
 const CircuitBreaker = require('opossum');
 const axios = require('axios');
-
-// Cấu hình cho Circuit Breaker
 const options = {
-  timeout: 40000, // Thời gian chờ (3 giây)
+  timeout: 50000, // Thời gian chờ (50 giây)
   errorThresholdPercentage: 50, // Ngưỡng lỗi 50%
-  resetTimeout: 30000 // Thời gian phục hồi sau khi ngắt (30 giây)
+  resetTimeout: 1000 // Thời gian phục hồi sau khi ngắt (30 giây)
 };
-
-// Hàm gửi yêu cầu với circuit breaker
 const requestWithCircuitBreaker = (url, method = 'GET', data = null, headers = {}) => {
   console.log(data)
   const requestFunction = async () => {
     switch (method) {
       case 'GET':
-        return (await axios.get(url, { headers })).data; // Gửi yêu cầu GET
+        return (await axios.get(url, { headers })).data;
       case 'POST':
-        return (await axios.post(url, data, { headers })).data; // Gửi yêu cầu POST
+        return (await axios.post(url, data, { headers })).data;
       case 'PUT':
-        return (await axios.put(url, data, { headers })).data; // Gửi yêu cầu PUT
+        return (await axios.put(url, data, { headers })).data;
       case 'DELETE':
-        return (await axios.delete(url, { headers })).data; // Gửi yêu cầu DELETE
+        return (await axios.delete(url, { headers })).data;
       default:
-        throw new Error('Method not supported'); // Nếu phương thức không hợp lệ
+        throw new Error('Method not supported');
     }
   };
 
   const breaker = new CircuitBreaker(requestFunction, options);
-  return breaker.fire(); // Gọi hàm yêu cầu
+  return breaker.fire();
 };
-
-
-
 global.requestWithCircuitBreaker = requestWithCircuitBreaker;
-
 module.exports = requestWithCircuitBreaker; 
