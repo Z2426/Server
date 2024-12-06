@@ -16,7 +16,7 @@ mongo_url = f"mongodb+srv://{MONGO_USERNAME}:{MONGO_PASSWORD}@{MONGO_CLUSTER}/{M
 client = MongoClient(mongo_url)
 # Connect to the MongoDB cluster
 client = MongoClient(mongo_url)
-db = client['socialdb']
+db = client[MONGO_DATABASE]
 embeddings_collection = db['embeddings']
 search_results_collection = db['search_results']
 users_collection = db['users']

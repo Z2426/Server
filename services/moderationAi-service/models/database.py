@@ -4,13 +4,11 @@ import os
 
 # Load environment variables from .env file
 load_dotenv()
-
 # Get MongoDB credentials from environment variables
 MONGO_USERNAME = os.getenv("MONGO_USERNAME")
 MONGO_PASSWORD = os.getenv("MONGO_PASSWORD")
 MONGO_DATABASE = os.getenv("MONGO_DATABASE")
 MONGO_CLUSTER = os.getenv("MONGO_CLUSTER")
-
 # Check if the environment variables are correctly loaded
 print(MONGO_USERNAME, MONGO_PASSWORD, MONGO_DATABASE, MONGO_CLUSTER)
 
@@ -26,5 +24,5 @@ client = MongoClient(mongo_url)
 # Connect to the MongoDB cluster
 client = MongoClient(mongo_url)
 
-db = client['socialdb']
+db = client[MONGO_DATABASE]
 post_collection = db['posts']

@@ -1,12 +1,12 @@
 from flask import Blueprint, request, jsonify
-from service.content_model import check_sensitive_image, check_sensitive_text,classify_post
+from service.content_model import check_sensitive_image, check_sensitive_text, classify_post
 from googletrans import Translator
 content_bp = Blueprint('content', __name__)
 @content_bp.route('/translator', methods=['POST'])
 def translate():
-    # Lấy dữ liệu từ yêu cầu JSON
+    # Get data from the JSON request
     data = request.get_json()
-    # Kiểm tra xem các tham số src, dest và text có được truyền vào không
+    # Check if the parameters src, dest, and text are provided
     src = data.get('src')
     dest = data.get('dest')
     text = data.get('text')
@@ -14,9 +14,9 @@ def translate():
         return jsonify({'error': 'Missing parameters. Please provide src, dest, and text.'}), 400
     try:
         translator = Translator()
-        # Dịch văn bản, thêm tham số text đúng cách
+        # Translate the text, passing the text parameter correctly
         result = translator.translate(text, src=src, dest=dest)
-        # Trả về kết quả dịch dưới dạng JSON
+        # Return the translated result as JSON
         return jsonify({
             'original_text': text,
             'translated_text': result.text,
@@ -25,41 +25,42 @@ def translate():
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
 @content_bp.route('/check-post', methods=['POST'])
 def check_post():
-    # Lấy dữ liệu từ request JSON
+    # Get data from the JSON request
     data = request.json
     text_input = data.get('text')
     image_url = data.get('image_url')
 
-    # Biến lưu kết quả kiểm duyệt
+    # Variable to store the result of the check
     result = {'sensitive': False}
 
-    # Kiểm tra văn bản nếu có
+    # Check text if provided
     if text_input:
         is_text_sensitive = check_sensitive_text(text_input)
         if is_text_sensitive:
             result['sensitive'] = True
             result['text'] = {'sensitive': True}
-            return jsonify(result), 200  # Trả về kết quả ngay lập tức nếu văn bản nhạy cảm
+            return jsonify(result), 200  # Return the result immediately if the text is sensitive
 
         result['text'] = {'sensitive': False}
 
-    # Kiểm tra hình ảnh nếu có
+    # Check image if provided
     if image_url:
         is_image_sensitive, label = check_sensitive_image(image_url)
         if is_image_sensitive:
             result['sensitive'] = True
             result['image'] = {'sensitive': True, 'label': label}
-            return jsonify(result), 200  # Trả về kết quả ngay lập tức nếu hình ảnh nhạy cảm
+            return jsonify(result), 200  # Return the result immediately if the image is sensitive
 
         result['image'] = {'sensitive': False}
 
-    # Nếu cả hai trường đều trống, trả về lỗi
+    # If both fields are empty, return an error
     if not text_input and not image_url:
         return jsonify({'error': 'text or image_url is required'}), 400
     
-    # Trả về kết quả kiểm duyệt nếu không có nội dung nhạy cảm
+    # Return the result of the check if no sensitive content is found
     return jsonify(result), 200
 
 @content_bp.route('/check-image', methods=['POST'])

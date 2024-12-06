@@ -1,31 +1,48 @@
-from flask import Flask
-from controllers.content_controller import content_bp
-from flask_cors import CORS
-import redis
+import os
 import json
 import threading
-from task_processor import process_task  # Import hàm xử lý task
-app = Flask(__name__)
-# Cấu hình CORS cho toàn bộ ứng dụng và cho phép tất cả các nguồn
-# Cấu hình CORS cho phép frontend từ localhost:3006
-r = redis.StrictRedis(host='redis', port=6379, db=0)
-CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
+import redis
+from flask import Flask
+from flask_cors import CORS
+from dotenv import load_dotenv
+from controllers.content_controller import content_bp
+from task_processor import process_task  
 
-# Worker chạy trong nền để nhận và xử lý task
+# Load environment variables from the .env file
+load_dotenv()
+
+# Configure Redis connection using environment variables
+r = redis.StrictRedis(
+    host=os.getenv('REDIS_HOST', 'localhost'),  # Default to localhost if not provided
+    port=int(os.getenv('REDIS_PORT', 6379)),    # Default to 6379 if not provided
+    db=int(os.getenv('REDIS_DB', 0))            # Default to DB 0 if not provided
+)
+
+# Initialize Flask application
+app = Flask(__name__)
+
+# Enable CORS for all routes
+CORS(app, resources={r"/*": {"origins": os.getenv('FRONTEND_URL', 'http://localhost:3000')}})
+
+# Worker function to continuously process tasks from Redis
 def worker():
     while True:
-        # Lấy task từ hàng đợi Redis
-        task_data = r.brpop('content_processing_queue')  # Đợi và lấy task
-        task = json.loads(task_data[1])  # Giải mã task
-        process_task(task)  # Xử lý task
+        task_data = r.brpop('content_processing_queue')  # Block until a task is available
+        task = json.loads(task_data[1])  # Decode task
+        process_task(task)  # Process the task
 
-# Khởi động worker trong một thread riêng biệt
+# Start the worker in a separate thread
 def start_worker():
     worker_thread = threading.Thread(target=worker)
-    worker_thread.daemon = True  # Để worker tự động dừng khi app dừng
+    worker_thread.daemon = True  # Make it a daemon so it exits with the app
     worker_thread.start()
-# Đăng ký blueprint cho content
+
+# Register blueprint for content processing
 app.register_blueprint(content_bp)
+
+# Run the Flask app with configurable host and port from environment variables
 if __name__ == "__main__":
-    start_worker() 
-    app.run(debug=True, host="0.0.0.0", port=3008)  # Bind to 0.0.0.0
+    host = os.getenv('FLASK_HOST', '0.0.0.0')  
+    port = int(os.getenv('MODERATION_SERVICE_PORT', 3008)) 
+    start_worker()  # Start the task worker
+    app.run(debug=True, host=host, port=port)  

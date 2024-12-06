@@ -3,23 +3,29 @@ from PIL import Image, UnidentifiedImageError
 from io import BytesIO
 import torch
 import os
-from transformers import CLIPProcessor, CLIPModel, BertTokenizer, BertForSequenceClassification,pipeline
-from sklearn.metrics.pairwise import cosine_similarity
-from transformers import pipeline
+from transformers import CLIPProcessor, CLIPModel, pipeline
 from googletrans import Translator
-# Tải mô hình CLIP
-# Tải và lưu mô hình và tokenizer
-# Đảm bảo rằng biến môi trường TRANSFORMERS_CACHE đã được thiết lập đúng
-cache_dir = os.getenv("HF_HOME", "/root/.cache/huggingface/transformers")
-os.makedirs(cache_dir, exist_ok=True)  # Tạo thư mục cache nếu chưa tồn tại
+import logging
 
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Environment setup for transformers cache
+cache_dir = os.getenv("HF_HOME", "/root/.cache/huggingface/transformers")
+os.makedirs(cache_dir, exist_ok=True)  # Create cache directory if it doesn't exist
+
+# Load CLIP model and processor
 clip_model = CLIPModel.from_pretrained("openai/clip-vit-base-patch16")
 clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch16")
-# # Tải pipeline phân loại toxic comments
+
+# Toxic comment classifier pipeline
 toxicity_classifier = pipeline("text-classification", model="unitary/toxic-bert")
-# # Load zero-shot text classification model 
+
+# Zero-shot text classification pipeline
 text_classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
-# Danh sách nhãn nhạy cảm
+
+# Sensitive labels for image classification
 sensitive_labels = [
     "toxic", "nudity", "violence", "horror", "blood", "gore", "murder", 
     "assault", "abuse", "self-harm", "slasher", "disturbing", "graphic", "cruelty", 
@@ -40,7 +46,7 @@ sensitive_labels = [
     "serial killer", "organized crime", "prostitution", "forced prostitution", 
     "child soldier", "genital mutilation", "ethnic cleansing", "serial abuse", 
     "hate propaganda", "violent threat", 
-    # Bổ sung mới
+    # Add new sensitive labels
     "supernatural", "demon", "zombie", "monster", "possession", "poltergeist", 
     "exorcism", "vampire", "werewolf", "mutant", "decapitation", "dismemberment", 
     "burnt body", "rotting flesh", "deformed", "undead", "corpse", "skull", 
@@ -50,24 +56,16 @@ sensitive_labels = [
     "demonic possession", "creature attack", "haunted house", "satanic symbol", 
     "witchcraft", "ghoul", "necromancy"
 ]
-#TOPIC CLASSIFY POST
-# List of topics for classification
+
+# List of topics for text classification
 topics = [
-    "News and Events",
-    "Entertainment",
-    "Health and Fitness",
-    "Travel",
-    "Fashion and Beauty",
-    "Technology and Innovation",
-    "Education and Learning",
-    "Business and Entrepreneurship",
-    "Lifestyle",
-    "Art and Creativity",
-    "Environment and Nature Conservation",
-    "Love and Relationships",
-    "Pets"  # New topic added here
+    "News and Events", "Entertainment", "Health and Fitness", "Travel", 
+    "Fashion and Beauty", "Technology and Innovation", "Education and Learning", 
+    "Business and Entrepreneurship", "Lifestyle", "Art and Creativity", 
+    "Environment and Nature Conservation", "Love and Relationships", "Pets"
 ]
-# Hàm tải ảnh từ URL
+
+# Load image from URL function
 def load_image(image_url):
     try:
         response = requests.get(image_url)
@@ -78,18 +76,15 @@ def load_image(image_url):
 
         img = Image.open(BytesIO(response.content)).convert("RGB")
         return img
-
-    except (requests.exceptions.HTTPError, requests.exceptions.ConnectionError,
-            requests.exceptions.Timeout, requests.exceptions.RequestException,
-            UnidentifiedImageError) as e:
-        print(f"Error loading image: {e}")
+    except Exception as e:
+        logger.error(f"Error loading image: {e}")
         return None
 
-# Hàm kiểm tra ảnh nhạy cảm
+# Check if an image is sensitive
 def check_sensitive_image(image_url):
     img = load_image(image_url)
     if img is None:
-        print("Không thể tải ảnh hoặc ảnh không hợp lệ.")
+        logger.warning("Cannot load image or invalid image.")
         return False, None
 
     inputs = clip_processor(text=sensitive_labels, images=img, return_tensors="pt", padding=True)
@@ -102,111 +97,91 @@ def check_sensitive_image(image_url):
 
     for i, label in enumerate(sensitive_labels):
         if probs[0][i] > 0.5:
-            print(f"Ảnh nhạy cảm phát hiện: {label} (độ tin cậy: {probs[0][i]:.2f})")
+            logger.info(f"Sensitive image detected: {label} (confidence: {probs[0][i]:.2f})")
             return True, label
 
-    print("Ảnh không nhạy cảm.")
+    logger.info("No sensitive content detected in the image.")
     return False, None
-# Tải pipeline phân loại toxic comments
-toxicity_classifier = pipeline("text-classification", model="unitary/toxic-bert")
 
-# Dịch văn bản từ tiếng Việt sang tiếng Anh
+# Translate Vietnamese text to English
 def translate_vietnamese_to_english(vietnamese_text):
     translator = Translator()
     translation = translator.translate(vietnamese_text, src='vi', dest='en')
     return translation.text
-# Hàm kiểm tra xem văn bản có phải là tiếng Việt hay không
+
+# Check if text is in Vietnamese
 def is_vietnamese(text):
-    # Kiểm tra nếu văn bản có chứa ký tự tiếng Việt
     return any(ord(c) > 127 for c in text)
-# Hàm phát hiện toxicity
+
+# Check if text contains sensitive content (toxicity)
 def check_sensitive_text(text):
-    # Nếu văn bản là tiếng Việt, dịch sang tiếng Anh
     if is_vietnamese(text):
         text = translate_vietnamese_to_english(text)
     
-    # Phân loại toxicity và giả sử toxicity_classifier trả về một dictionary với 'score'
     result = toxicity_classifier(text)
-    
-    # Lấy điểm toxicity từ kết quả trả về (dưới dạng dictionary)
     toxicity_score = result[0]['score'] if isinstance(result, list) else result['score']
     
-    # In kết quả toxicity ra (nếu cần)
-    print(toxicity_score)
+    logger.info(f"Toxicity score: {toxicity_score}")
     
-    # Kiểm tra nếu độ độc hại cao hơn 0.8
     if toxicity_score > 0.5:
         return True
-    else:
-        return False
+    return False
 
-# Function to classify text
+# Classify text based on predefined topics
 def classify_text(content):
     try:
         if not content.strip():
-            return None  # Return None if no text provided
-         # Nếu văn bản là tiếng Việt, dịch sang tiếng Anh
+            return None
+
         if is_vietnamese(content):
             content = translate_vietnamese_to_english(content)
     
-        # Perform zero-shot text classification
         results = text_classifier(content, candidate_labels=topics)
 
-        # Ensure the results contain labels and scores
         if 'labels' in results and 'scores' in results:
-            # Collect topic scores and get the topic with the highest score
             scores = {results['labels'][i]: results['scores'][i] for i in range(len(results['labels']))}
             predicted_topic = max(scores, key=scores.get)
-            predicted_score = max(scores.values())  # Get the highest score for text
+            predicted_score = max(scores.values())
             return {"topic": predicted_topic, "score": predicted_score}
         else:
-            print("Error: The structure of the classification result is not as expected.")
-            return None  # Return None for invalid result structure
+            logger.error("Error: The structure of the classification result is not as expected.")
+            return None
     except Exception as e:
-        print(f"Error during text classification: {e}")
-        return None  # Return None in case of any exception
+        logger.error(f"Error during text classification: {e}")
+        return None
 
-# Function to classify image
+# Classify image based on predefined topics
 def classify_image(image_url):
     try:
-        # Load image from URL
         image = Image.open(requests.get(image_url, stream=True).raw)
-
-        # Preprocess the image and get the model output
         inputs = clip_processor(images=image, text=topics, return_tensors="pt", padding=True)
         outputs = clip_model(**inputs)
 
-        # Get image features and match with the topics
-        logits_per_image = outputs.logits_per_image  # this is the similarity score for each image-topic
-        probs = logits_per_image.softmax(dim=1)  # Softmax to get probability distribution
-        predicted_topic_idx = torch.argmax(probs)  # Get the index of the most likely topic
-        predicted_topic = topics[predicted_topic_idx.item()]  # Get the corresponding topic
-        predicted_score = probs[0][predicted_topic_idx.item()].item()  # Get the probability of the predicted topic
+        logits_per_image = outputs.logits_per_image
+        probs = logits_per_image.softmax(dim=1)
+        predicted_topic_idx = torch.argmax(probs)
+        predicted_topic = topics[predicted_topic_idx.item()]
+        predicted_score = probs[0][predicted_topic_idx.item()].item()
         return {"topic": predicted_topic, "score": predicted_score}
     except Exception as e:
-        print(f"Error during image classification: {e}")
+        logger.error(f"Error during image classification: {e}")
         return {"topic": "Error: Classification failed", "score": 0.0}
 
-# Function to classify both text and image and return a unified result as an object
-# Function to classify both text and image and return a unified result as an object
+# Classify both text and image and return the one with the highest score
 def classify_post(text_content=None, image_url=None):
     try:
         predicted_text = None
         predicted_image = None
 
-        # Classify text if text content is provided
         if text_content and text_content.strip():
             predicted_text = classify_text(text_content)
 
-        # Classify image if image URL is provided
         if image_url:
             predicted_image = classify_image(image_url)
 
-        # Handle case where only one input (text or image) is provided
         if predicted_text is None and predicted_image is None:
             return {"error": "No text or image provided"}
 
-        # Compare scores and return the one with the highest score
         if predicted_text and predicted_image:
             if predicted_text["score"] >= predicted_image["score"]:
                 return {
@@ -232,32 +207,28 @@ def classify_post(text_content=None, image_url=None):
                 "text_score": 0.0,
                 "image_score": predicted_image["score"]
             }
-
-        # If neither classifier returned a valid topic, return "Unknown"
-        return {"predicted_topic": "Unknown", "text_score": 0.0, "image_score": 0.0}
-
     except Exception as e:
-        return {"error": f"Error during classification: {e}"}
+        logger.error(f"Error during post classification: {e}")
+        return {"error": "Failed to classify post"}
 def check_content_sensitivity(text_content=None, image_url=None):
     try:
-        # Kiểm tra văn bản có nhạy cảm không
+        # Check if text content is provided and assess if it's toxic
         if text_content and text_content.strip():
-            # Kiểm tra độ độc hại trong văn bản
             is_toxic = check_sensitive_text(text_content)
             if is_toxic:
-                print("Văn bản chứa nội dung nhạy cảm.")
-                return True  # Trả về True ngay nếu văn bản nhạy cảm
+                logger.info("Text contains sensitive content.")
+                return True  # Return True if the text is toxic
 
-        # Nếu có URL ảnh, kiểm tra ảnh nhạy cảm
+        # If an image URL is provided, check if the image contains sensitive content
         if image_url:
             is_sensitive_image, label = check_sensitive_image(image_url)
             if is_sensitive_image:
-                print(f"Ảnh chứa nội dung nhạy cảm: {label}")
-                return True  # Trả về True nếu ảnh nhạy cảm
+                logger.info(f"Image contains sensitive content: {label}")
+                return True  # Return True if the image is sensitive
 
-        # Nếu không có nội dung nhạy cảm trong cả văn bản và ảnh
+        # If no sensitive content is found in both text and image
         return False
 
     except Exception as e:
-        print(f"Error during content sensitivity check: {e}")
-        return False  # Trả về False nếu có lỗi trong quá trình kiểm tra
+        logger.error(f"Error during content sensitivity check: {e}")
+        return False  # Return False if there's an error during the check
