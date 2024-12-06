@@ -1,8 +1,6 @@
 const express = require('express');
 const connectDB = require('./shared/db/db.js');
 const notifiRoutes = require('./routes/notiRoutes.js')
-const errorHandler = require('./shared/middleware/errorHandler.js')
-require('./shared/middleware/logRequest.js')
 require('./shared/utils/circuitBreaker.js')
 require('dotenv').config();
 const cors = require('cors');
@@ -19,8 +17,6 @@ const configureApp = () => {
     };
     app.use(cors(corsOptions));
     app.use('/api/notifi', notifiRoutes);
-    app.use(errorHandler);
-
     return app;
 };
 /** ================================================ 

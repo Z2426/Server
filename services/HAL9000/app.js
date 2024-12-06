@@ -1,8 +1,6 @@
 const express = require('express');
 const connectDB = require('./shared/db/db.js');
 const AiRoutes = require('./routes/index.js')
-const errorHandler = require('./shared/middleware/errorHandler.js')
-require('./shared/middleware/logRequest.js')
 require('./shared/utils/circuitBreaker.js')
 const cors = require('cors');
 require('dotenv').config();
@@ -11,19 +9,14 @@ require('dotenv').config();
  * ================================================ */
 const configureApp = () => {
     const app = express();
-
     app.use(express.json());
-
     const corsOptions = {
         origin: "*",
         methods: ['GET', 'POST', 'PUT', 'DELETE'],
         allowedHeaders: ['Content-Type', 'Authorization'],
     };
     app.use(cors(corsOptions));
-
     app.use('/', AiRoutes);
-    app.use(errorHandler);
-
     return app;
 };
 
