@@ -531,7 +531,7 @@ exports.getUserById = async (userId, fields) => {
 exports.updateUser = async (userId, updateData) => {
   try {
     // Giới hạn các trường được phép cập nhật
-    const allowedUpdates = ['firstName', 'lastName', 'location', 'profileUrl', 'profession', 'workplace', 'birthDate', 'province', 'school', 'address'];
+    const allowedUpdates = ['firstName', 'lastName', 'location', 'profileUrl', 'profession', 'workplace', 'birthDate', 'province', 'school', 'address', 'hobby'];
     const updates = Object.keys(updateData).filter(key => allowedUpdates.includes(key));
 
     if (updates.length === 0) {

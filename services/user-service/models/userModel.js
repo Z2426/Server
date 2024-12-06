@@ -58,6 +58,7 @@ const userSchema = new mongoose.Schema({
   province: { type: String },
   school: { type: String },
   address: { type: String },
+  hobby: { type: String },
   role: {
     type: String,
     enum: ['User', 'Admin'],

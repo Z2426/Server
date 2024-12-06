@@ -1,17 +1,32 @@
 const express = require('express');
 const router = express.Router();
 
-// Import các controller
-const { getReportsByPostController, getReportsByReasonController, getReportsByDateController, getPostsByDateController } = require('../controllers/reportController');
+// Import controllers
+const {
+    getReportsByPostController,
+    getReportsByReasonController,
+    getReportsByDateController,
+    getPostsByDateController
+} = require('../controllers/reportController');
 
-// Route lấy thống kê số lượng báo cáo theo bài post
+
+/** ================================================
+ *               Report Statistics Routes
+ * ================================================ */
+// Route to get report statistics by post
 router.get('/reports-by-post', getReportsByPostController);
 
-// Route lấy thống kê số lượng báo cáo theo lý do
+// Route to get report statistics by reason
 router.get('/reports-by-reason', getReportsByReasonController);
 
-// Route lấy thống kê số lượng báo cáo theo thời gian (ngày, tháng, năm)
+// Route to get report statistics by date (day, month, year)
 router.get('/reports-by-date', getReportsByDateController);
-// Route để lấy thống kê bài post theo ngày, tháng, hoặc năm
+
+// ===========================
+// Group 2: Post Statistics Routes
+// ===========================
+
+// Route to get post statistics by date (day, month, year)
 router.get('/posts-created-by-date', getPostsByDateController);
+
 module.exports = router;

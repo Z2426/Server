@@ -1,58 +1,65 @@
 // Import các hàm từ service
 const { getReportsByPost, getReportsByReason, getReportsByDate, getPostsByDate } = require('../services/reportService');
 
-// Controller lấy thống kê số lượng báo cáo theo bài post
+/** ================================================
+ *               Report Statistics Routes
+ * ================================================ */
 exports.getReportsByPostController = async (req, res) => {
     try {
-        const reports = await getReportsByPost(); // Gọi hàm từ service
-        res.status(200).json(reports); // Trả về kết quả
+        const reports = await getReportsByPost();
+        return res.status(200).json(reports);
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: "Lỗi khi lấy thống kê theo bài post", error: error.message });
+        return res.status(500).json({ message: "Error retrieving statistics by post", error: error.message });
     }
 };
 
-// Controller lấy thống kê số lượng báo cáo theo lý do
 exports.getReportsByReasonController = async (req, res) => {
     try {
-        const reports = await getReportsByReason(); // Gọi hàm từ service
-        res.status(200).json(reports); // Trả về kết quả
+        const reports = await getReportsByReason();
+        return res.status(200).json(reports); // Return the result
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: "Lỗi khi lấy thống kê theo lý do", error: error.message });
+        return res.status(500).json({ message: "Error retrieving statistics by reason", error: error.message });
     }
 };
 
-// Controller lấy thống kê số lượng báo cáo theo thời gian (ngày, tháng, năm)
+// Controller to get report statistics by date (day, month, year)
 exports.getReportsByDateController = async (req, res) => {
-    const { groupBy } = req.query; // Tham số groupBy có thể là 'day', 'month', 'year'
+    const { groupBy } = req.query; // groupBy parameter can be 'day', 'month', or 'year'
 
     if (!groupBy) {
         return res.status(400).json({ message: "Missing query parameter: groupBy" });
     }
 
     try {
-        const reports = await getReportsByDate(groupBy); // Gọi hàm từ service
-        res.status(200).json(reports); // Trả về kết quả
+        const reports = await getReportsByDate(groupBy); // Call the service function
+        return res.status(200).json(reports); // Return the result
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: "Lỗi khi lấy thống kê theo thời gian", error: error.message });
+        return res.status(500).json({ message: "Error retrieving statistics by date", error: error.message });
     }
 };
-// Controller để lấy thống kê bài post theo ngày, tháng, năm
-exports.getPostsByDateController = async function (req, res) {
+
+/** ================================================
+ *               Post Statistics Routes
+ * ================================================ */
+
+// Controller to get post statistics by date (day, month, year)
+exports.getPostsByDateController = async (req, res) => {
     try {
         const { groupBy } = req.query;
 
+        // Validate groupBy parameter
         if (!groupBy || !['day', 'month', 'year'].includes(groupBy)) {
             return res.status(400).json({ error: "Invalid 'groupBy' parameter. Use 'day', 'month', or 'year'." });
         }
 
-        const postsByDate = await getPostsByDate(groupBy);
+        const postsByDate = await getPostsByDate(groupBy); // Call the service function
 
-        res.status(200).json(postsByDate);
+        return res.status(200).json(postsByDate); // Return the result
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: "An error occurred while retrieving post statistics." });
+        return res.status(500).json({ error: "An error occurred while retrieving post statistics." });
     }
 };
