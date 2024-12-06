@@ -1,31 +1,28 @@
-const { redisClient, redisSubscriber, connectToRedis, generateTaskId, sendMessageToRedis } = require("../../shared/redis/redisClient");
-// Lưu trạng thái người dùng (online/offline)
+const { redisClient } = require("../../shared/redis/redisClient");
 const setUserStatus = async (userId, status) => {
-    const key = `user:${userId}:status`; // Tạo key
-    const expiration = 3600; // TTL (thời gian sống) tính bằng giây, ví dụ 1 giờ
+    const key = `user:${userId}:status`;
+    const expiration = 3600;
 
     try {
         await redisClient.set(key, status, { EX: expiration });
-        console.log(`Đã lưu trạng thái '${status}' cho user ${userId}`);
+        console.log(`Status '${status}' has been saved for user ${userId}.`);
     } catch (error) {
-        console.error('Lỗi khi lưu trạng thái:', error);
+        console.error('Error saving status:', error);
     }
 };
 
-// Thêm socket ID vào danh sách kết nối của người dùng
 const addUserSocket = async (userId, socketId) => {
     try {
-        await redisClient.sAdd(`user:${userId}:sockets`, socketId); // Thêm socketId vào Redis
+        await redisClient.sAdd(`user:${userId}:sockets`, socketId);
         console.log(`Socket ID ${socketId} added for user ${userId}`);
     } catch (error) {
         console.error("Error adding socket ID to Redis:", error);
     }
 };
 
-// Xóa socket ID khỏi danh sách kết nối của người dùng
 const removeUserSocket = async (userId, socketId) => {
     try {
-        await redisClient.sRem(`user:${userId}:sockets`, socketId); // Xóa socketId khỏi Redis
+        await redisClient.sRem(`user:${userId}:sockets`, socketId);
         console.log(`Socket ID ${socketId} removed for user ${userId}`);
         const remainingSockets = await redisClient.sCard(`user:${userId}:sockets`);
         if (remainingSockets === 0) {
@@ -36,7 +33,6 @@ const removeUserSocket = async (userId, socketId) => {
     }
 };
 
-// Lấy tất cả socket ID của một người dùng
 const getUserSockets = async (userId) => {
     try {
         return await redisClient.sMembers(`user:${userId}:sockets`);
@@ -46,7 +42,6 @@ const getUserSockets = async (userId) => {
     }
 };
 
-// Thêm người dùng vào nhóm (room)
 const addUserToGroup = async (userId, groupId) => {
     try {
         await redisClient.sAdd(`group:${groupId}:users`, userId);
@@ -56,7 +51,6 @@ const addUserToGroup = async (userId, groupId) => {
     }
 };
 
-// Xóa người dùng khỏi nhóm (room)
 const removeUserFromGroup = async (userId, groupId) => {
     try {
         await redisClient.sRem(`group:${groupId}:users`, userId);
@@ -66,7 +60,6 @@ const removeUserFromGroup = async (userId, groupId) => {
     }
 };
 
-// Lấy tất cả người dùng trong nhóm
 const getUsersInGroup = async (groupId) => {
     try {
         return await redisClient.sMembers(`group:${groupId}:users`);
@@ -75,6 +68,7 @@ const getUsersInGroup = async (groupId) => {
         return [];
     }
 };
+
 
 module.exports = {
     addUserSocket,
