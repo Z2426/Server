@@ -8,7 +8,7 @@ WORKDIR /usr/src/app
 COPY ./services/auth-service/package*.json ./
 
 # Install dependencies
-RUN npm install
+RUN npm i
 
 # Stage 2: Production image
 FROM node:16-slim

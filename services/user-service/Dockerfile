@@ -8,7 +8,7 @@ WORKDIR /usr/src/app
 COPY ./services/user-service/package*.json ./
 
 # Install all dependencies (including dev dependencies like nodemon)
-RUN npm ci
+RUN npm i
 
 # Stage 2: Production image
 FROM node:16-slim AS production

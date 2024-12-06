@@ -39,4 +39,5 @@ EXPOSE 3002
 CMD ["nodemon", "--legacy-watch", "app.js"]
 
 # If you're running in a production environment, use this instead of nodemon:
-# CMD ["npm", "start"]
+# # Lệnh chạy ứng dụng khi container được khởi động
+#CMD ["node", "app.js"]

@@ -8,7 +8,7 @@ WORKDIR /usr/src/app
 COPY ./services/chat-service/package*.json ./
 
 # Install dependencies using npm ci for faster, more reliable installs (only if you have package-lock.json)
-RUN npm ci
+RUN npm i
 
 # Stage 2: Production image
 FROM node:16-slim

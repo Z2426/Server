@@ -3,8 +3,9 @@ const Report = require('../models/reportModel.js')
 const mongoose = require('mongoose');
 const requestWithCircuitBreaker = require('../shared/utils/circuitBreaker.js');
 const { sendToQueue, } = require("../shared/redis/redisClient");
-
-// Service lấy thông tin bài post theo id
+/** ================================================
+ *                Post Management
+ * ================================================ */
 exports.getPostById = async (postId) => {
   try {
     // Tìm bài post theo id
@@ -17,17 +18,325 @@ exports.getPostById = async (postId) => {
     throw error; // Ném lỗi ra ngoài để controller xử lý
   }
 };
-exports.approvePost = async (postId) => {
+exports.searchPosts = async (userId, keyword, page = 1, limit = 10) => {
   try {
-    // Kiểm tra xem bài viết có tồn tại không
+    const regex = new RegExp(keyword, 'i');
+    const posts = await Post.find({
+      $or: [
+        { visibility: 'public', description: regex },
+        { visibility: 'friends', description: regex, specifiedUsers: userId },
+        { visibility: 'private', userId: userId, description: regex }
+      ]
+    })
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit);
+    return {
+      posts,
+      totalPosts: posts.length,
+      currentPage: page,
+      totalPages: Math.ceil(posts.length / limit)
+    };
+  } catch (error) {
+    console.error('Error searching posts:', error.message);
+    throw new Error('Error searching posts:', error.message);
+  }
+};
+exports.deletePost = async (postId) => {
+  try {
+    const deletedPost = await Post.findByIdAndDelete(postId);
+
+    if (!deletedPost) {
+      throw new Error('Post not found');
+    }
+    return deletedPost;
+  } catch (error) {
+    throw new Error('Error deleting post: ' + error.message);
+  }
+};
+exports.updatePost = async (postId, updateData) => {
+  try {
+    const updatedPost = await Post.findByIdAndUpdate(postId, updateData, {
+      new: true,
+      runValidators: true
+    });
+
+    if (!updatedPost) {
+      throw new Error('Post not found');
+    }
+
+    var data = {
+      'user_id': updatedPost.userId,
+      'post_id': updatedPost._id,
+      'text': updatedPost.description,
+      'image_url': updatedPost.image
+    };
+    sendToQueue('task_queue_suggest_service', 'suggest_friend_by_image', data);
+    sendToQueue('content_processing_queue', 'checkContentSensitivity', data);
+
+    return updatedPost;
+  } catch (error) {
+    throw new Error('Error updating post: ' + error.message);
+  }
+};
+exports.createPost = async (postData) => {
+  try {
+    const post = new Post(postData); // Tạo bài post trực tiếp từ postData
+    const newPost = await post.save();
+
+    var data = {
+      'user_id': newPost.userId,
+      'post_id': newPost._id,
+      'text': newPost.description,
+      'image_url': newPost.image
+    };
+    sendToQueue('task_queue_suggest_service', 'suggest_friend_by_image', data);
+    sendToQueue('content_processing_queue', 'checkContentSensitivity', data);
+
+    return newPost;
+  } catch (error) {
+    throw new Error('Error creating post: ' + error.message);
+  }
+};
+exports.getUserPosts = async (userId, page = 1, limit = 10) => {
+  try {
+    const skip = (page - 1) * limit;
+    const posts = await Post.find({ userId })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+    if (posts.length === 0) {
+      return [];
+    }
+    const userInfo = await requestWithCircuitBreaker(
+      `${process.env.URL_USER_SERVICE}/getUsersBulk?userIds=${userId}`,
+      'GET'
+    );
+    const postsWithUserInfo = posts.map(post => ({
+      ...post.toObject(),
+      userDetails: userInfo || null,
+    }));
+    console.log(postsWithUserInfo);
+    return postsWithUserInfo;
+  } catch (error) {
+    console.error(error);
+    throw new Error('Error fetching the user\'s post list');
+  }
+};
+exports.getPostWithUserDetails = async (postId) => {
+  try {
+    const post = await Post.findById(postId).lean();
+    if (!post) throw new Error('Post not found');
+    console.log(post.userId)
+    const userDetails = await requestWithCircuitBreaker(
+      `${process.env.URL_USER_SERVICE}/getUsersBulk?userIds=${post.userId}`,
+      'GET'
+    );
+    post.userDetails = userDetails;
+    console.log("User Details:", post.userDetails);
+    console.log("Complete Post with User Details:", post);
+    return post;
+  } catch (error) {
+    console.error("Error fetching post with user details:", error);
+    throw new Error("Could not fetch post with user details");
+  }
+}
+
+/** ================================================
+ *                Comment and Reply Management
+ * ================================================ */
+exports.getCommentsByPostId = async (postId, page = 1, limit = 10) => {
+  const post = await Post.findById(postId);
+  if (!post) {
+    throw new Error('Post not found');
+  }
+  const comments = post.comments.slice((page - 1) * limit, page * limit);
+  const userIds = [...new Set(comments.map(comment => comment.userId.toString()))];
+  const userInfo = await requestWithCircuitBreaker(
+    `${process.env.URL_USER_SERVICE}/getUsersBulk?userIds=${userIds.join(',')}`,
+    'GET'
+  );
+  const userMap = userInfo.reduce((map, user) => {
+    map[user._id] = user;
+    return map;
+  }, {});
+  const commentsWithUserInfo = comments.map(comment => ({
+    ...comment.toObject(),
+    user: userMap[comment.userId.toString()],
+  }));
+  return {
+    totalComments: post.comments.length,
+    totalPages: Math.ceil(post.comments.length / limit),
+    currentPage: page,
+    comments: commentsWithUserInfo,
+  };
+};
+exports.getRepliesByCommentId = async (postId, commentId, page = 1, limit = 5) => {
+  const post = await Post.findById(postId);
+  if (!post) {
+    throw new Error('Post not found');
+  }
+  const comment = post.comments.id(commentId);
+  if (!comment) {
+    throw new Error('Comment not found');
+  }
+  const replies = comment.replies.slice((page - 1) * limit, page * limit);
+  const userIds = [...new Set(replies.map(reply => reply.userId.toString()))];
+  const userInfo = await requestWithCircuitBreaker(
+    `${process.env.URL_USER_SERVICE}/getUsersBulk?userIds=${userIds.join(',')}`,
+    'GET'
+  );
+  const userMap = userInfo.reduce((map, user) => {
+    map[user._id] = user;
+    return map;
+  }, {});
+  const repliesWithUserInfo = replies.map(reply => ({
+    ...reply.toObject(),
+    user: userMap[reply.userId.toString()],
+  }));
+  return {
+    totalReplies: comment.replies.length,
+    totalPages: Math.ceil(comment.replies.length / limit),
+    currentPage: page,
+    replies: repliesWithUserInfo,
+  };
+};
+exports.deleteCommentOrReply = async (postId, commentId = null, replyId = null) => {
+  const post = await Post.findById(postId);
+  console.log(commentId, replyId)
+  if (!post) {
+    throw new Error('Post not found');
+  }
+  if (replyId) {
+    const commentToUpdate = post.comments.find(comment =>
+      comment.replies.some(reply => reply._id.toString() === replyId)
+    );
+    if (!commentToUpdate) {
+      throw new Error('Comment not found');
+    }
+    const replyIndex = commentToUpdate.replies.findIndex(reply => reply._id.toString() === replyId);
+    if (replyIndex === -1) {
+      throw new Error('Rely not found');
+    }
+    commentToUpdate.replies.splice(replyIndex, 1);
+  }
+  else if (commentId) {
+    const commentIndex = post.comments.findIndex(comment => comment._id.toString() === commentId);
+    if (commentIndex === -1) {
+      throw new Error('Comment not found');
+    }
+    post.comments.splice(commentIndex, 1);
+  } else {
+    throw new Error('please provide id for delete');
+  }
+  await post.save();
+
+  return post;
+};
+exports.updateCommentOrReply = async (postId, userId, comment, commentId = null, replyId = null) => {
+  const post = await Post.findById(postId);
+  if (!post) {
+    throw new Error('Post not found');
+  }
+  if (replyId) {
+    console.log("Update reply");
+    const commentToUpdate = post.comments.find(comment =>
+      comment.replies.some(reply => reply._id.toString() === replyId)
+    );
+    if (!commentToUpdate) {
+      throw new Error('Comment not found');
+    }
+    const replyToUpdate = commentToUpdate.replies.find(reply => reply._id.toString() === replyId);
+    console.log("Rely to update", replyToUpdate);
+    if (!replyToUpdate) {
+      throw new Error('reply not found');
+    }
+    if (replyToUpdate.userId.toString() !== userId) {
+      throw new Error('You do not have permission to update this response');
+    }
+    replyToUpdate.comment = comment;
+  }
+  else if (commentId) {
+    const commentToUpdate = post.comments.id(commentId);
+    if (!commentToUpdate) {
+      throw new Error('comment not  found');
+    }
+    if (commentToUpdate.userId.toString() !== userId) {
+      throw new Error('You do not have permission to update this response');
+    }
+    commentToUpdate.comment = comment;
+  } else {
+    throw new Error('Need to provide commentId or replyId to update');
+  }
+  await post.save();
+  return post;
+};
+exports.createCommentOrReply = async (postId, userId, commentText, commentId = null) => {
+  const post = await Post.findById(postId);
+  if (!post) {
+    throw new Error('Post not found');
+  }
+  if (commentId) {
+    const comment = post.comments.id(commentId);
+    if (!comment) {
+      throw new Error('Comment not found');
+    }
+    comment.replies.push({ userId, comment: commentText });
+  } else {
+    post.comments.push({ userId, comment: commentText });
+  }
+  await post.save();
+  return post;
+};
+exports.followPost = async (postId, userId) => {
+  try {
     const post = await Post.findById(postId);
     if (!post) {
-      return { message: "Post not found" }; // Nếu không tìm thấy bài viết
+      throw new Error('Post not found');
     }
-    // Cập nhật trạng thái của bài viết
+    const hasFollowed = post.followers.includes(userId);
+    if (hasFollowed) {
+      post.followers = post.followers.filter(id => id.toString() !== userId.toString());
+    } else {
+      post.followers.push(userId);
+    }
+    await post.save();
+    return post;
+  } catch (error) {
+    throw new Error('ERROR by follow/unfollow post: ' + error.message);
+  }
+};
+exports.toggleLikePost = async (postId, userId) => {
+  try {
+    const post = await Post.findById(postId);
+    if (!post) {
+      throw new Error('Post not found');
+    }
+    const hasLiked = post.likes.includes(userId);
+
+    if (hasLiked) {
+      post.likes = post.likes.filter(id => id.toString() !== userId.toString());
+    } else {
+      post.likes.push(userId);
+    }
+    await post.save();
+    return post;
+  } catch (error) {
+    throw new Error('An error occurred while toggling like for the post: ' + error.message);
+  }
+};
+
+/** ================================================
+ *                Report Management
+ * ================================================ */
+exports.approvePost = async (postId) => {
+  try {
+    const post = await Post.findById(postId);
+    if (!post) {
+      return { message: "Post not found" };
+    }
     post.status = 'approved';
-    await post.save(); // Kiểm tra kết quả lưu bài viết
-    // Xóa các báo cáo liên quan đến bài viết
+    await post.save();
     await Report.deleteMany({ postId: postId });
     return {
       message: "Post has been approved and reports have been removed."
@@ -37,45 +346,36 @@ exports.approvePost = async (postId) => {
     return { message: "An error occurred while processing the request." };
   }
 };
-// Xóa bài post nếu vi phạm nguyên tắc
 exports.deletePostIfViolating = async (postId) => {
   const deletedPost = await Post.findByIdAndDelete(postId);
   if (!deletedPost) {
     throw new Error('Post not found');
   }
-  // Xóa tất cả báo cáo liên quan đến bài post
   await Report.deleteMany({ postId: postId });
 
   return { message: "Post has been deleted due to violation of guidelines.", post: deletedPost };
 };
-
-
-
-
-
-// Hàm lấy danh sách báo cáo
 exports.getReportedPosts = async () => {
-  // console.log("XEM TJONG TIN BAI POSTS")
   return await Report.aggregate([
     {
       $group: {
-        _id: '$postId', // Nhóm theo postId
-        count: { $sum: 1 }, // Đếm số lượt báo cáo
-        userIds: { $addToSet: '$userId' }, // Lấy danh sách userId đã báo cáo
-        reasons: { $push: '$reason' }, // Lưu tất cả lý do báo cáo
-        createdAt: { $first: '$createdAt' } // Lấy thời gian tạo báo cáo đầu tiên
+        _id: '$postId',
+        count: { $sum: 1 },
+        userIds: { $addToSet: '$userId' },
+        reasons: { $push: '$reason' },
+        createdAt: { $first: '$createdAt' }
       }
     },
     {
       $lookup: {
-        from: 'posts', // Tên collection bài post
-        localField: '_id', // Trường postId từ Report
-        foreignField: '_id', // Trường _id trong Post
-        as: 'post' // Lưu kết quả trong post
+        from: 'posts',
+        localField: '_id',
+        foreignField: '_id',
+        as: 'post'
       }
     },
     {
-      $unwind: { path: '$post', preserveNullAndEmptyArrays: true } // Tách mảng bài post thành đối tượng, cho phép null nếu không tìm thấy
+      $unwind: { path: '$post', preserveNullAndEmptyArrays: true }
     },
     {
       $project: {
@@ -91,361 +391,57 @@ exports.getReportedPosts = async () => {
     }
   ]);
 };
-// Hàm tìm kiếm bài viết theo từ khóa
-exports.searchPosts = async (userId, keyword, page = 1, limit = 10) => {
+exports.createReport = async (postId, userId, reason, isSensitive = false) => {
   try {
-    // Chuyển đổi từ khóa thành regex để tìm kiếm không phân biệt chữ hoa chữ thường
-    const regex = new RegExp(keyword, 'i');
-    // Tìm kiếm bài viết theo từ khóa và phân quyền
-    const posts = await Post.find({
-      $or: [
-        { visibility: 'public', description: regex }, // Bài viết công khai
-        { visibility: 'friends', description: regex, specifiedUsers: userId }, // Bài viết bạn bè có người dùng chỉ định
-        { visibility: 'private', userId: userId, description: regex } // Bài viết riêng tư của chính người dùng
-      ]
-    })
-      .sort({ createdAt: -1 }) // Sắp xếp bài viết theo thời gian tạo
-      .skip((page - 1) * limit) // Phân trang
-      .limit(limit); // Giới hạn số lượng bài viết trả về
-
-    return {
-      posts,
-      totalPosts: posts.length,
-      currentPage: page,
-      totalPages: Math.ceil(posts.length / limit)
-    };
+    const postExists = await Post.findById(postId);
+    if (!postExists) {
+      throw new Error('Post does not exist');
+    }
+    const report = new Report({ postId, userId, reason });
+    await report.save();
+    console.log(`Report for post ${postId} by user ${userId} has been saved.`);
+    const reportCount = await Report.countDocuments({ postId: postId });
+    console.log(`Total reports for post ${postId}: ${reportCount}`);
+    if (reportCount > 10) {
+      await Post.updateOne(
+        { _id: postId },
+        { $set: { status: 'rejected', visibility: false } }
+      );
+      console.log(`Post ${postId} has been rejected and hidden from the system.`);
+    }
+    if (isSensitive) {
+      await Post.updateOne(
+        { _id: postId },
+        { $set: { status: 'rejected' } }
+      );
+      console.log(`Post ${postId} has violated sensitive content guidelines and has been handled.`);
+    }
+    return report;
   } catch (error) {
-    console.error('Error searching posts:', error.message);
-    throw new Error('Lỗi khi tìm kiếm bài viết');
+    console.error('Error creating the report:', error);
+    throw error;
   }
 };
-exports.getCommentsByPostId = async (postId, page = 1, limit = 10) => {
-  const post = await Post.findById(postId);
-  if (!post) {
-    throw new Error('Bài viết không tìm thấy');
-  }
-  // Lấy bình luận với phân trang
-  const comments = post.comments.slice((page - 1) * limit, page * limit);
-  // Lấy danh sách userId từ các bình luận
-  const userIds = [...new Set(comments.map(comment => comment.userId.toString()))];
-  // Lấy thông tin người dùng một lần thông qua user service
-  const userInfo = await requestWithCircuitBreaker(
-    `${process.env.URL_USER_SERVICE}/getUsersBulk?userIds=${userIds.join(',')}`,
-    'GET'
-  );
-  // Tạo bản đồ thông tin người dùng để dễ dàng truy xuất
-  const userMap = userInfo.reduce((map, user) => {
-    map[user._id] = user;
-    return map;
-  }, {});
-  // Kết hợp thông tin người dùng với từng bình luận
-  const commentsWithUserInfo = comments.map(comment => ({
-    ...comment.toObject(),
-    user: userMap[comment.userId.toString()],
-  }));
-  return {
-    totalComments: post.comments.length,
-    totalPages: Math.ceil(post.comments.length / limit),
-    currentPage: page,
-    comments: commentsWithUserInfo,
-  };
-};
-exports.getRepliesByCommentId = async (postId, commentId, page = 1, limit = 5) => {
-  const post = await Post.findById(postId);
-  if (!post) {
-    throw new Error('Bài viết không tìm thấy');
-  }
-  // Tìm bình luận theo commentId
-  const comment = post.comments.id(commentId);
-  if (!comment) {
-    throw new Error('Bình luận không tìm thấy');
-  }
-  // Lấy phản hồi với phân trang
-  const replies = comment.replies.slice((page - 1) * limit, page * limit);
-
-  // Lấy danh sách userId từ các phản hồi
-  const userIds = [...new Set(replies.map(reply => reply.userId.toString()))];
-
-  // Gọi API user service để lấy thông tin người dùng một lần
-  const userInfo = await requestWithCircuitBreaker(
-    `${process.env.URL_USER_SERVICE}/getUsersBulk?userIds=${userIds.join(',')}`,
-    'GET'
-  );
-
-  // Tạo bản đồ người dùng để dễ dàng truy xuất thông tin
-  const userMap = userInfo.reduce((map, user) => {
-    map[user._id] = user;
-    return map;
-  }, {});
-
-  // Kết hợp thông tin người dùng vào từng phản hồi
-  const repliesWithUserInfo = replies.map(reply => ({
-    ...reply.toObject(),
-    user: userMap[reply.userId.toString()],
-  }));
-
-  return {
-    totalReplies: comment.replies.length,
-    totalPages: Math.ceil(comment.replies.length / limit),
-    currentPage: page,
-    replies: repliesWithUserInfo,
-  };
-};
-exports.deleteCommentOrReply = async (postId, commentId = null, replyId = null) => {
-  const post = await Post.findById(postId);
-  console.log(commentId, replyId)
-  if (!post) {
-    throw new Error('Bài viết không tìm thấy');
-  }
-
-  // Nếu có replyId, tìm bình luận và xóa phản hồi
-  if (replyId) {
-    const commentToUpdate = post.comments.find(comment =>
-      comment.replies.some(reply => reply._id.toString() === replyId)
-    );
-
-    if (!commentToUpdate) {
-      throw new Error('Bình luận không tìm thấy');
-    }
-
-    // Tìm phản hồi để xóa
-    const replyIndex = commentToUpdate.replies.findIndex(reply => reply._id.toString() === replyId);
-    if (replyIndex === -1) {
-      throw new Error('Phản hồi không tìm thấy');
-    }
-
-    // Xóa phản hồi
-    commentToUpdate.replies.splice(replyIndex, 1);
-  }
-  // Nếu không có replyId, xóa bình luận
-  else if (commentId) {
-    const commentIndex = post.comments.findIndex(comment => comment._id.toString() === commentId);
-    if (commentIndex === -1) {
-      throw new Error('Bình luận không tìm thấy');
-    }
-
-    // Xóa bình luận
-    post.comments.splice(commentIndex, 1);
-  } else {
-    throw new Error('Cần cung cấp commentId hoặc replyId để xóa');
-  }
-
-  // Lưu bài viết sau khi xóa
-  await post.save();
-
-  return post; // Trả về bài viết đã được cập nhật
-};
-exports.updateCommentOrReply = async (postId, userId, comment, commentId = null, replyId = null) => {
-  const post = await Post.findById(postId);
-  console.log(commentId, replyId); // Kiểm tra commentId và replyId
-
-  if (!post) {
-    throw new Error('Bài viết không tìm thấy');
-  }
-
-  // Cập nhật phản hồi nếu có replyId
-  if (replyId) {
-    console.log("Cập nhật phản hồi");
-
-    // Tìm bình luận chứa phản hồi
-    const commentToUpdate = post.comments.find(comment =>
-      comment.replies.some(reply => reply._id.toString() === replyId)
-    );
-
-    if (!commentToUpdate) {
-      throw new Error('Bình luận không tìm thấy');
-    }
-
-    // Tìm phản hồi để cập nhật
-    const replyToUpdate = commentToUpdate.replies.find(reply => reply._id.toString() === replyId);
-    console.log("Phản hồi để cập nhật:", replyToUpdate);
-
-    if (!replyToUpdate) {
-      throw new Error('Phản hồi không tìm thấy');
-    }
-
-    // Kiểm tra xem userId có đúng với phản hồi không
-    if (replyToUpdate.userId.toString() !== userId) {
-      throw new Error('Bạn không có quyền cập nhật phản hồi này');
-    }
-
-    // Cập nhật nội dung phản hồi
-    replyToUpdate.comment = comment; // Sử dụng biến comment đã được truyền vào hàm
-    console.log("Nội dung phản hồi sau khi cập nhật:", replyToUpdate);
-  }
-  // Cập nhật bình luận nếu có commentId
-  else if (commentId) {
-    console.log("Cập nhật bình luận", commentId);
-
-    const commentToUpdate = post.comments.id(commentId);
-
-    if (!commentToUpdate) {
-      throw new Error('Bình luận không tìm thấy');
-    }
-
-    // Kiểm tra xem userId có đúng với bình luận không
-    if (commentToUpdate.userId.toString() !== userId) {
-      throw new Error('Bạn không có quyền cập nhật bình luận này');
-    }
-
-    // Cập nhật nội dung bình luận
-    commentToUpdate.comment = comment; // Sử dụng biến comment đã được truyền vào hàm
-  } else {
-    throw new Error('Cần cung cấp commentId hoặc replyId để cập nhật');
-  }
-
-  // Lưu bài viết sau khi cập nhật
-  await post.save();
-
-  return post; // Trả về bài viết đã cập nhật
-};
-exports.createCommentOrReply = async (postId, userId, commentText, commentId = null) => {
-  const post = await Post.findById(postId);
-
-  if (!post) {
-    throw new Error('Bài viết không tìm thấy');
-  }
-
-  if (commentId) {
-    // Nếu có commentId, tạo phản hồi
-    const comment = post.comments.id(commentId);
-
-    if (!comment) {
-      throw new Error('Bình luận không tìm thấy');
-    }
-
-    comment.replies.push({ userId, comment: commentText });
-  } else {
-    // Nếu không có commentId, tạo bình luận mới
-    post.comments.push({ userId, comment: commentText });
-  }
-
-  await post.save();
-
-  return post;
-};
-exports.followPost = async (postId, userId) => {
-  try {
-    const post = await Post.findById(postId);
-
-    if (!post) {
-      throw new Error('Bài post không tìm thấy');
-    }
-
-    // Kiểm tra xem userId có trong mảng followers hay không
-    const hasFollowed = post.followers.includes(userId);
-
-    if (hasFollowed) {
-      // Nếu đã follow, xóa userId khỏi mảng followers
-      post.followers = post.followers.filter(id => id.toString() !== userId.toString());
-    } else {
-      // Nếu chưa follow, thêm userId vào mảng followers
-      post.followers.push(userId);
-    }
-
-    // Lưu bài post đã cập nhật
-    await post.save();
-    return post;
-  } catch (error) {
-    throw new Error('Có lỗi xảy ra khi follow/unfollow bài post: ' + error.message);
-  }
-};
-exports.toggleLikePost = async (postId, userId) => {
-  try {
-    const post = await Post.findById(postId);
-
-    if (!post) {
-      throw new Error('Bài post không tìm thấy');
-    }
-
-    // Kiểm tra xem userId có trong mảng likes hay không
-    const hasLiked = post.likes.includes(userId);
-
-    if (hasLiked) {
-      // Nếu đã thích, xóa userId khỏi mảng likes
-      post.likes = post.likes.filter(id => id.toString() !== userId.toString());
-    } else {
-      // Nếu chưa thích, thêm userId vào mảng likes
-      post.likes.push(userId);
-    }
-
-    // Lưu bài post đã cập nhật
-    await post.save();
-    return post;
-  } catch (error) {
-    throw new Error('Có lỗi xảy ra khi toggle like bài post: ' + error.message);
-  }
-};
+/** ================================================
+ *                OTHER INTERACT
+ * ================================================ */
 exports.markPostAsViewed = async (postId, userId) => {
   try {
-    // Cập nhật bài post để thêm người đã xem
     const updatedPost = await Post.findByIdAndUpdate(
       postId,
-      { $addToSet: { viewers: userId } }, // Sử dụng $addToSet để tránh trùng
+      { $addToSet: { viewers: userId } },
       { new: true }
     );
 
     if (!updatedPost) {
-      throw new Error('Bài post không tìm thấy');
+      throw new Error('Post not found');
     }
-    console.log("update sucess")
+    console.log("Update successful");
     return updatedPost;
   } catch (error) {
-    throw new Error('Có lỗi xảy ra khi đánh dấu bài post là đã xem: ' + error.message);
+    throw new Error('An error occurred while marking the post as viewed: ' + error.message);
   }
 };
-// Lấy danh sách bài post của người dùng với phân trang và thông tin chủ bài post
-exports.getUserPosts = async (userId, page = 1, limit = 10) => {
-  try {
-    const skip = (page - 1) * limit;
-    // Lấy danh sách bài post với phân trang
-    const posts = await Post.find({ userId })
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
-    // Kiểm tra nếu không có bài post nào
-    if (posts.length === 0) {
-      return []; // Trả về mảng rỗng nếu không có bài post
-    }
-    // Lấy thông tin người dùng một lần
-    const userInfo = await requestWithCircuitBreaker(
-      `${process.env.URL_USER_SERVICE}/getUsersBulk?userIds=${userId}`,
-      'GET'
-    );
-    // Gắn thông tin người dùng vào từng bài post
-    const postsWithUserInfo = posts.map(post => ({
-      ...post.toObject(),
-      userDetails: userInfo || null, // Gán null nếu không tìm thấy thông tin người dùng
-    }));
-    console.log(postsWithUserInfo);
-    return postsWithUserInfo;
-  } catch (error) {
-    console.error(error);
-    throw new Error('Lỗi khi lấy danh sách bài post của người dùng');
-  }
-};
-exports.getPostWithUserDetails = async (postId) => {
-  try {
-    // Retrieve the post from the database
-    const post = await Post.findById(postId).lean();
-    if (!post) throw new Error('Post not found');
-    console.log(post.userId)
-    // Gọi hàm circuit breaker để lấy thông tin người dùng
-    const userDetails = await requestWithCircuitBreaker(
-      `${process.env.URL_USER_SERVICE}/getUsersBulk?userIds=${post.userId}`, // Truyền userId trong URL
-      'GET'
-    );
-    // Attach user details to the post
-    post.userDetails = userDetails;
-    console.log("User Details:", post.userDetails);
-    console.log("Complete Post with User Details:", post);
-
-    return post;
-  } catch (error) {
-    console.error("Error fetching post with user details:", error);
-    throw new Error("Could not fetch post with user details");
-  }
-}
 // Cập nhật danh sách specifiedUsers
 exports.updateSpecifiedUsers = async (postId, userIds) => {
   try {
@@ -453,126 +449,30 @@ exports.updateSpecifiedUsers = async (postId, userIds) => {
     if (!post) {
       throw new Error('Post not found');
     }
-
-    // Cập nhật specifiedUsers với danh sách mới
-    post.specifiedUsers = userIds; // Gán lại mảng specifiedUsers
+    post.specifiedUsers = userIds;
     await post.save();
-
-    return post; // Trả về bài post đã cập nhật
+    return post;
   } catch (error) {
     throw new Error('Error updating specified users: ' + error.message);
   }
 };
-// Tạo bài post với các trường cho phép
-exports.createPost = async (postData) => {
-  const allowedFields = ['userId', 'description', 'image', 'visibility', 'urlVideo']; // Các trường cho phép
 
-  // Lọc dữ liệu để chỉ lấy các trường cho phép
-  const filteredPostData = {};
-  allowedFields.forEach(field => {
-    if (postData[field] !== undefined) {
-      filteredPostData[field] = postData[field];
-    }
-  });
 
-  try {
-    const post = new Post(filteredPostData);
-    const newpost = await post.save();
-    // console.log("da gui du lieu")
-    var data = {
-      'user_id': newpost.userId,
-      'post_id': newpost._id,
-      'text': newpost.description,
-      'image_url': newpost.image
-    }
-    sendToQueue('task_queue_suggest_service', 'suggest_friend_by_image', data)
-    sendToQueue('content_processing_queue', 'checkContentSensitivity', data)
-    return newpost
-  } catch (error) {
-    throw new Error('Error creating post: ' + error.message);
-  }
-};
-// Cập nhật bài post với các trường cho phép
-exports.updatePost = async (postId, updateData) => {
-  try {
-    const allowedFields = ['description', 'image', 'visibility', 'videoUrl'];
-    const filteredUpdateData = {};
 
-    allowedFields.forEach(field => {
-      if (updateData[field] !== undefined) {
-        filteredUpdateData[field] = updateData[field];
-      }
-    });
 
-    const updatedPost = await Post.findByIdAndUpdate(postId, filteredUpdateData, {
-      new: true,
-      runValidators: true
-    });
 
-    if (!updatedPost) {
-      throw new Error('Post not found');
-    }
-    var data = {
-      'user_id': updatedPost.userId,
-      'post_id': updatedPost._id,
-      'text': updatedPost.description,
-      'image_url': updatedPost.image
-    }
-    sendToQueue('task_queue_suggest_service', 'suggest_friend_by_image', data)
-    sendToQueue('content_processing_queue', 'checkContentSensitivity', data)
-    return updatedPost;
-  } catch (error) {
-    throw new Error('Error updating post: ' + error.message);
-  }
-};
 
-// Xóa bài post
-exports.deletePost = async (postId) => {
-  try {
-    const deletedPost = await Post.findByIdAndDelete(postId);
 
-    if (!deletedPost) {
-      throw new Error('Post not found');
-    }
-    return deletedPost;
-  } catch (error) {
-    throw new Error('Error deleting post: ' + error.message);
-  }
-};
-// Hàm tạo báo cáo cho một bài post
-exports.createReport = async (postId, userId, reason, isSensitive = false) => {
-  try {
-    // Kiểm tra xem bài viết có tồn tại không
-    const postExists = await Post.findById(postId);
-    if (!postExists) {
-      throw new Error('Post does not exist'); // Nếu không tồn tại, trả về lỗi
-    }
-    // Tạo báo cáo mới
-    const report = new Report({ postId, userId, reason });
-    await report.save(); // Lưu báo cáo vào cơ sở dữ liệu
-    console.log(`Báo cáo bài viết ${postId} bởi người dùng ${userId} đã được lưu.`);
-    // Kiểm tra tổng số báo cáo của bài viết
-    const reportCount = await Report.countDocuments({ postId: postId });
-    console.log(`Tổng số báo cáo cho bài viết ${postId}: ${reportCount}`);
-    if (reportCount > 10) {
-      // Nếu tổng số báo cáo > 10, đổi trạng thái bài viết thành 'rejected' và ẩn bài viết
-      await Post.updateOne(
-        { _id: postId },
-        { $set: { status: 'rejected', visibility: false } } // Ẩn bài viết
-      );
-      console.log(`Bài viết ${postId} đã bị từ chối (rejected) và ẩn khỏi hệ thống.`);
-    }
-    if (isSensitive) {
-      // Cập nhật trạng thái bài viết là "violated" nếu phát hiện nội dung nhạy cảm
-      await Post.updateOne(
-        { _id: postId },
-        { $set: { status: 'rejected' } }
-      );
-      console.log(`Bài viết ${postId} đã vi phạm nội dung nhạy cảm và đã được xử lý.`);
-    }
-    return report; // Trả về báo cáo đã được tạo
-  } catch (error) {
-    console.error('Lỗi khi tạo báo cáo:', error);
-    throw error; // Ném lỗi nếu có
-  }
-};
+
+
+
+
+
+
+
+
+
+
+
+
+

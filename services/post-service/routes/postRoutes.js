@@ -12,7 +12,7 @@ router.post("/:postId/report", authMiddleware.verifyTokenMiddleware, postControl
 // Get all reported posts
 router.get("/reported", postController.getReports);
 // Delete a post if it violates rules
-router.delete('/:postId/delete-violate', postController.DeletePostViolate);
+router.delete('/:postId/delete-violate', postController.deletePostViolate);
 // Approve a post and remove its report
 router.post('/:postId/approve', postController.approvePost);
 /** ================================================

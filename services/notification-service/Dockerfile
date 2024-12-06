@@ -8,7 +8,7 @@ WORKDIR /usr/src/app
 COPY ./services/notification-service/package*.json ./
 
 # Install all dependencies (including dev dependencies for development)
-RUN npm ci
+RUN npm i
 
 # Stage 2: Production image
 FROM node:16-slim AS production
