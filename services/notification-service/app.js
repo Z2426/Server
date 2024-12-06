@@ -2,30 +2,42 @@ const express = require('express');
 const connectDB = require('./shared/db/db.js');
 const notifiRoutes = require('./routes/notiRoutes.js')
 const errorHandler = require('./shared/middleware/errorHandler.js')
-const { connectToRedis, subscribeToChannels, sendMessageToRedis } = require('./shared/redis/redisClient');
 require('./shared/middleware/logRequest.js')
 require('./shared/utils/circuitBreaker.js')
 require('dotenv').config();
-const app = express();
 const cors = require('cors');
-app.use(express.json());
-// // Cấu hình CORS
-// const corsOptions = {
-//     origin: 'http://localhost:3001', // Cho phép từ frontend
-//     methods: ['GET', 'POST', 'PUT', 'DELETE'], // Các phương thức được phép
-//     allowedHeaders: ['Content-Type', 'Authorization'], // Các header cho phép
-// };
-const corsOptions = {
-    origin: "*",  // Cho phép mọi nguồn (cổng khác nhau)
-    methods: ['GET', 'POST', 'PUT', 'DELETE'], // Các phương thức được phép
-    allowedHeaders: ['Content-Type', 'Authorization'], // Các header cho phép
-};
-app.use(cors(corsOptions));
-connectDB();
-app.use('/api/notifi', notifiRoutes);
-app.use(errorHandler)
+/** ================================================ 
+ * Configure Express App
+ * ================================================ */
+const configureApp = () => {
+    const app = express();
+    app.use(express.json());
+    const corsOptions = {
+        origin: "*",
+        methods: ['GET', 'POST', 'PUT', 'DELETE'],
+        allowedHeaders: ['Content-Type', 'Authorization'],
+    };
+    app.use(cors(corsOptions));
+    app.use('/api/notifi', notifiRoutes);
+    app.use(errorHandler);
 
-const PORT = process.env.NOTIFi_SERVICE_PORT || 3004;
-app.listen(PORT, () => {
-    console.log(`User service running on port ${PORT}`);
-});
+    return app;
+};
+/** ================================================ 
+ * Start Server
+ * ================================================ */
+const startServer = async () => {
+    try {
+        await connectDB();
+        const app = configureApp();
+        const PORT = process.env.NOTIFI_SERVICE_PORT || 3004;
+        app.listen(PORT, () => {
+            console.log(`Notification service running on port ${PORT}`);
+        });
+    } catch (error) {
+        console.error('Failed to start the server:', error.message);
+        process.exit(1);
+    }
+};
+// Start the server
+startServer();

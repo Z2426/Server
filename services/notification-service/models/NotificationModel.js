@@ -5,18 +5,20 @@ const notificationSchema = new mongoose.Schema({
         userId: { type: String, required: true },
         avatar: { type: String },
         name: { type: String }
-    }, // thông tin của người tương tác sự kiện
-    reciveId: { type: String, required: true }, // Chỉ lưu userId của người nhận thông báo
+    },
+    reciveId: { type: String, required: true },
     type: {
         type: String,
         enum: ['FRIEND_REQUEST', 'FRIEND_ACCEPTED', 'COMMENT', 'LIKE'],
         required: true
     },
-    postId: { type: String }, // Chỉ lưu postId của bài post
+    postId: { type: String },
     message: { type: String },
     redirectUrl: { type: String },
     isRead: { type: Boolean, default: false },
     createdAt: { type: Date, default: Date.now }
 });
-
+notificationSchema.index({ reciveId: 1, isRead: 1 });
+notificationSchema.index({ type: 1 });
+notificationSchema.index({ createdAt: -1 });
 module.exports = mongoose.model('Notification', notificationSchema);
