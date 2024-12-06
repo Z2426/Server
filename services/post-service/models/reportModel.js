@@ -3,8 +3,8 @@ const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 
 const reportSchema = new Schema({
-    postId: { type: Schema.Types.ObjectId, ref: 'Post', required: true }, // ID bài post
-    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true }, // ID người dùng đã báo cáo
+    postId: { type: Schema.Types.ObjectId, ref: 'Post', required: true },
+    userId: { type: Schema.Types.ObjectId, required: true },
     reason: {
         type: String,
         required: true,
@@ -21,7 +21,7 @@ const reportSchema = new Schema({
             'Other'                 // Lý do khác
         ]
     },
-    createdAt: { type: Date, default: Date.now } // Thời gian báo cáo
+    createdAt: { type: Date, default: Date.now }
 });
 
 const Report = mongoose.model("Report", reportSchema);
