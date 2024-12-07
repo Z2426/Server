@@ -1,4 +1,5 @@
 const { createDuplicateClient } = require("./shared/redis/redisClient"); // Client Redis ban đầu
+const { violatePost } = require("./shared/utils/notification"); // Client Redis ban đầu
 const { handleUserInteraction } = require("./shared/redis/interactionAndWeightCalculator");
 const { markPostAsViewed } = require("./services/postService");
 const { createReport } = require('./services/postService');
@@ -30,6 +31,7 @@ const processTaskFromQueue = async () => {
                         console.log("Processing violet post...");
                         console.log(task.data);
                         createReport(task.data.post_id, task.data.user_id, "ContentToxic", isSensitive = true);
+                        await violatePost(task.data.user_id, task.data.post_id)
                         success = true;
                     }
                 } catch (error) {

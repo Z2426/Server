@@ -110,7 +110,7 @@ exports.sendFriendRequest = async (userId, senderId) => {
     await user.save();
     return user;
   } catch (error) {
-    console.error('Lỗi khi gửi yêu cầu kết bạn:', error.message);
+    console.error('error when send request friend :', error.message);
     throw new Error(error.message);
   }
 };
@@ -196,11 +196,9 @@ exports.toggleFollowUser = async (followerId, followedId) => {
 exports.updateFriendRequestStatus = async (userId, requestId, newStatus) => {
   try {
     const user = await Users.findById(userId);
-    console.log(user)
     if (!user) {
       return { success: false, message: 'User not exist' };
     }
-    console.log("request id ", requestId)
     const request = user.friendRequests.id(requestId);
     if (!request) {
       return { success: false, message: 'Friend request not found' };

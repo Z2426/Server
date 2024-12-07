@@ -7,7 +7,6 @@ const adminService = require("../services/adminService");
 exports.getReports = async (req, res) => {
     try {
         const reportedPosts = await adminService.getReportedPosts();
-        console.log(reportedPosts);
         return res.json(reportedPosts);
     } catch (error) {
         console.error("Error fetching reported posts:", error);

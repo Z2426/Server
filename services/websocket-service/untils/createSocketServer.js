@@ -4,12 +4,14 @@ const {
     removeUserSocket,
     setUserStatus,
     addUserToGroup,
-    removeUserFromGroup,
+    removeUserFromGroup
 } = require("../shared/redis/redisHandler");
+const { redisSubscriber } = require("../shared/redis/redisClient");
 const {
     connectToRedis, sendToQueue
 } = require("../shared/redis/redisClient");
 connectToRedis()
+
 const createSocketServer = (server) => {
     const io = new Server(server, {
         cors: {
@@ -21,6 +23,19 @@ const createSocketServer = (server) => {
     });
     io.on("connection", (socket) => {
         console.log(`Client connected with id: ${socket.id}`);
+        redisSubscriber.subscribe('notification', (message) => {
+            try {
+                const notification = JSON.parse(message);
+                console.log(message)
+                if (notification && notification.userId) {
+                    io.to(notification.reciveId).emit("receiveNotification", notification);
+                    console.log(`Notification sent to user ${notification.userId}:`, notification.message);
+                }
+            } catch (error) {
+                console.error('Error handling Redis message:', error);
+            }
+        });
+
         socket.on("userOnline", async ({ userId }) => {
             if (!userId) {
                 console.error("userOnline event received without userId");

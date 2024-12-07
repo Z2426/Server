@@ -11,10 +11,8 @@ exports.verifyTokenMiddleware = async (req, res, next) => {
         return next();
     } catch (error) {
         console.error('Token verification error:', error);
-
         const statusCode = error.response?.status === 403 ? 403 : 500;
         const message = statusCode === 403 ? "Invalid token" : "Internal server error";
-
         return res.status(statusCode).json({ message });
     }
 };

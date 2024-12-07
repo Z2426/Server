@@ -4,6 +4,7 @@ const notifiRoutes = require('./routes/notiRoutes.js')
 require('./shared/utils/circuitBreaker.js')
 require('dotenv').config();
 const cors = require('cors');
+const { connectToRedis } = require("./shared/redis/redisClient");
 /** ================================================ 
  * Configure Express App
  * ================================================ */
@@ -25,6 +26,7 @@ const configureApp = () => {
 const startServer = async () => {
     try {
         await connectDB();
+        await connectToRedis();
         const app = configureApp();
         const PORT = process.env.NOTIFI_SERVICE_PORT || 3004;
         app.listen(PORT, () => {
