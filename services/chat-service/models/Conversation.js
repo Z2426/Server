@@ -19,9 +19,4 @@ const ConversationSchema = new mongoose.Schema({
     admins: [{ type: Schema.Types.ObjectId }]
 }, { timestamps: true });
 ConversationSchema.index({ members: 1 });
-ConversationSchema.index({ 'lastMessage.timestamp': -1 });
-ConversationSchema.index({ 'unreadCounts.userId': 1 });
-ConversationSchema.index({ blockedUsers: 1 });
-ConversationSchema.index({ admins: 1 });
-
 module.exports = mongoose.model("Conversation", ConversationSchema);

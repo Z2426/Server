@@ -10,7 +10,4 @@ const CommentSchema = new mongoose.Schema({
     followers: [{ type: mongoose.Schema.Types.ObjectId }]
 });
 CommentSchema.index({ userId: 1 });
-CommentSchema.index({ likes: 1 });
-CommentSchema.index({ followers: 1 });
-CommentSchema.index({ createdAt: -1 });
 module.exports = mongoose.model('Comment', CommentSchema);

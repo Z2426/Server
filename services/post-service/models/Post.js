@@ -50,13 +50,7 @@ const PostSchema = new mongoose.Schema({
         default: Date.now
     }
 });
-PostSchema.index({ userId: 1 });
 PostSchema.index({ categories: 1 });
-PostSchema.index({ status: 1 });
-PostSchema.index({ createdAt: -1 });
-PostSchema.index({ userId: 1, status: 1 });
-PostSchema.index({ categories: 1, createdAt: -1 });
-PostSchema.index({ followers: 1, visibility: 1, createdAt: -1 })
 const Post = mongoose.model("Post", PostSchema);
 module.exports = Post;
 

@@ -8,6 +8,4 @@ const ReplySchema = new mongoose.Schema({
     createdAt: { type: Date, default: Date.now }
 });
 ReplySchema.index({ userId: 1 });
-ReplySchema.index({ createdAt: -1 });
-ReplySchema.index({ likes: 1 });
 module.exports = mongoose.model('Reply', ReplySchema);

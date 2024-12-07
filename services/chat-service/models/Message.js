@@ -16,8 +16,5 @@ const MessageSchema = new mongoose.Schema({
         }
     ]
 }, { timestamps: true });
-MessageSchema.index({ text: 'text' });
 MessageSchema.index({ senderId: 1 });
-MessageSchema.index({ timestamp: 1 });
-
 module.exports = mongoose.model("Message", MessageSchema);
