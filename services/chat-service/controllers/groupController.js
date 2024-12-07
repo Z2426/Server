@@ -1,52 +1,17 @@
 const GroupService = require("../services/groupService");
-exports.unblockMember = async (req, res) => {
-    const { conversationId, adminId, memberId } = req.body;
-    try {
-        const updatedGroup = await GroupService.unblockMemberInGroup(conversationId, adminId, memberId);
-        res.status(200).json({ message: "Thành viên đã được gỡ chặn.", data: updatedGroup });
-    } catch (error) {
-        console.error("Lỗi khi gỡ chặn thành viên:", error);
-        res.status(500).json({ message: "Đã có lỗi xảy ra khi gỡ chặn thành viên." });
-    }
-};
 
-exports.createGroup = async (req, res) => {
-    const { userId, groupName, groupDescription, members, isPrivate } = req.body;
+/** ================================================
+ * Member Management
+ * ================================================ */
 
-    // Kiểm tra kiểu dữ liệu của members
-    console.log("Kiểu dữ liệu của members:", typeof members);
-    console.log("Dữ liệu members:", members);
-
-    // Kiểm tra xem members có phải là mảng không
-    if (!Array.isArray(members)) {
-        return res.status(400).json({ message: "Members phải là một mảng." });
-    }
-
-    // Kiểm tra nếu số lượng thành viên không đủ ít nhất 3 (bao gồm người tạo nhóm)
-    if (members.length + 1 < 3) {
-        return res.status(400).json({ message: "Nhóm cần có ít nhất 3 thành viên." });
-    }
-
-    try {
-        const group = await GroupService.createGroup(userId, groupName, groupDescription, members, isPrivate);
-        res.status(201).json({ message: "Nhóm đã được tạo thành công.", data: group });
-    } catch (error) {
-        console.error("Lỗi khi tạo nhóm:", error);
-        res.status(500).json({ message: "Đã có lỗi xảy ra khi tạo nhóm.", error: error.message });
-    }
-};
-
-
-
-// Thêm thành viên vào nhóm
 exports.addMemberToGroup = async (req, res) => {
     const { userId, groupId, newMembers } = req.body;
     try {
         const result = await GroupService.addMemberToGroup(userId, groupId, newMembers);
         return res.status(200).json(result);
     } catch (error) {
-        console.error("Lỗi khi thêm thành viên:", error);
-        return res.status(500).json({ message: "Đã có lỗi xảy ra khi thêm thành viên.", error: error.message });
+        console.error("Error adding member:", error);
+        return res.status(500).json({ message: "An error occurred while adding the member.", error: error.message });
     }
 };
 
@@ -54,10 +19,10 @@ exports.removeMemberFromGroup = async (req, res) => {
     const { conversationId, adminId, memberId } = req.body;
     try {
         const updatedGroup = await GroupService.removeMemberFromGroup(conversationId, adminId, memberId);
-        res.status(200).json({ message: "Thành viên đã được xóa khỏi nhóm.", data: updatedGroup });
+        return res.status(200).json({ message: "Member removed from the group.", data: updatedGroup });
     } catch (error) {
-        console.error("Lỗi khi xóa thành viên khỏi nhóm:", error);
-        res.status(500).json({ message: "Đã có lỗi xảy ra khi xóa thành viên." });
+        console.error("Error removing member from the group:", error);
+        return res.status(500).json({ message: "An error occurred while removing the member." });
     }
 };
 
@@ -65,10 +30,10 @@ exports.changeMemberRole = async (req, res) => {
     const { conversationId, adminId, memberId, newRole } = req.body;
     try {
         const updatedGroup = await GroupService.changeMemberRole(conversationId, adminId, memberId, newRole);
-        res.status(200).json({ message: "Quyền thành viên đã được thay đổi.", data: updatedGroup });
+        return res.status(200).json({ message: "Member role changed.", data: updatedGroup });
     } catch (error) {
-        console.error("Lỗi khi thay đổi quyền thành viên:", error);
-        res.status(500).json({ message: "Đã có lỗi xảy ra khi thay đổi quyền." });
+        console.error("Error changing member role:", error);
+        return res.status(500).json({ message: "An error occurred while changing the role." });
     }
 };
 
@@ -76,57 +41,84 @@ exports.blockMemberInGroup = async (req, res) => {
     const { conversationId, adminId, memberId } = req.body;
     try {
         const updatedGroup = await GroupService.blockMemberInGroup(conversationId, adminId, memberId);
-        res.status(200).json({ message: "Thành viên đã bị chặn trong nhóm.", data: updatedGroup });
+        return res.status(200).json({ message: "Member has been blocked in the group.", data: updatedGroup });
     } catch (error) {
-        console.error("Lỗi khi chặn thành viên:", error);
-        res.status(500).json({ message: "Đã có lỗi xảy ra khi chặn thành viên." });
+        console.error("Error blocking member:", error);
+        return res.status(500).json({ message: "An error occurred while blocking the member." });
     }
 };
 
+exports.unblockMember = async (req, res) => {
+    const { conversationId, adminId, memberId } = req.body;
+    try {
+        const updatedGroup = await GroupService.unblockMemberInGroup(conversationId, adminId, memberId);
+        return res.status(200).json({ message: "Member has been unblocked.", data: updatedGroup });
+    } catch (error) {
+        console.error("Error unblocking member:", error);
+        return res.status(500).json({ message: "An error occurred while unblocking the member." });
+    }
+};
+/** ================================================
+ * Group Management
+ * ================================================ */
+
+
+exports.createGroup = async (req, res) => {
+    const { userId, groupName, groupDescription, members, isPrivate } = req.body;
+    if (!Array.isArray(members)) {
+        return res.status(400).json({ message: "Members must be an array." });
+    }
+    if (members.length + 1 < 3) {
+        return res.status(400).json({ message: "The group must have at least 3 members." });
+    }
+    try {
+        const group = await GroupService.createGroup(userId, groupName, groupDescription, members, isPrivate);
+        return res.status(201).json({ message: "Group created successfully.", data: group });
+    } catch (error) {
+        console.error("Error creating group:", error);
+        return res.status(500).json({ message: "An error occurred while creating the group.", error: error.message });
+    }
+};
 exports.getGroupActivityHistory = async (req, res) => {
     const { conversationId } = req.params;
     try {
         const activityHistory = await GroupService.getGroupActivityHistory(conversationId);
-        res.status(200).json({ message: "Lịch sử hoạt động của nhóm đã được truy xuất.", data: activityHistory });
+        return res.status(200).json({ message: "Group activity history retrieved successfully.", data: activityHistory });
     } catch (error) {
-        console.error("Lỗi khi lấy lịch sử hoạt động của nhóm:", error);
-        res.status(500).json({ message: "Đã có lỗi xảy ra khi lấy lịch sử hoạt động." });
+        console.error("Error retrieving group activity history:", error);
+        return res.status(500).json({ message: "An error occurred while retrieving group activity history." });
     }
 };
-
 exports.isAdmin = async (req, res) => {
     const { userId, conversationId } = req.params;
     try {
         const isAdmin = await GroupService.isAdmin(userId, conversationId);
-        res.status(200).json({ message: "Kiểm tra quyền quản trị thành công.", data: isAdmin });
+        return res.status(200).json({ message: "Admin status check successful.", data: isAdmin });
     } catch (error) {
-        console.error("Lỗi khi kiểm tra quyền quản trị:", error);
-        res.status(500).json({ message: "Đã có lỗi xảy ra khi kiểm tra quyền quản trị." });
+        console.error("Error checking admin status:", error);
+        return res.status(500).json({ message: "An error occurred while checking admin status." });
     }
 };
-
-
-
 exports.sendGroupInvite = async (req, res) => {
     const { conversationId, senderId, recipientId } = req.body;
     try {
         const invitation = await GroupService.sendGroupInvite(conversationId, senderId, recipientId);
-        res.status(200).json({ message: "Lời mời tham gia nhóm đã được gửi thành công.", data: invitation });
+        return res.status(200).json({ message: "Group invitation sent successfully.", data: invitation });
     } catch (error) {
-        console.error("Lỗi khi gửi lời mời tham gia nhóm:", error);
-        res.status(500).json({ message: "Đã có lỗi xảy ra khi gửi lời mời tham gia nhóm." });
+        console.error("Error sending group invite:", error);
+        return res.status(500).json({ message: "An error occurred while sending the group invitation." });
     }
 };
-
 exports.handleGroupInvite = async (req, res) => {
     const { invitationId, userId, status } = req.body;
     try {
         const result = await GroupService.handleGroupInvite(invitationId, userId, status);
-        res.status(200).json({ message: "Đã xử lý lời mời tham gia nhóm.", data: result });
+        return res.status(200).json({ message: "Group invitation processed.", data: result });
     } catch (error) {
-        console.error("Lỗi khi xử lý lời mời:", error);
-        res.status(500).json({ message: "Đã có lỗi xảy ra khi xử lý lời mời." });
+        console.error("Error processing group invite:", error);
+        return res.status(500).json({ message: "An error occurred while processing the group invitation." });
     }
 };
+
 
 

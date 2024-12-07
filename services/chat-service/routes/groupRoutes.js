@@ -2,17 +2,58 @@ const express = require("express");
 const router = express.Router();
 const groupController = require("../controllers/groupController");
 
-// Nhóm các API quản lý nhóm
-// Route để gỡ chặn thành viên trong nhóm
-router.put('/unblock-member', groupController.unblockMember);
-router.delete("/remove-member", groupController.removeMemberFromGroup);
-router.put("/change-role", groupController.changeMemberRole);
-router.put("/block-member", groupController.blockMemberInGroup);
-router.get("/activity/:conversationId", groupController.getGroupActivityHistory);
+/** ================================================
+ * Group Membership Management Routes
+ * ================================================ */
+
+// Add a new member to the group
 router.post("/add-member", groupController.addMemberToGroup);
-router.get("/admin/:userId/:conversationId", groupController.isAdmin);
+
+// Remove a member from the group
+router.delete("/remove-member", groupController.removeMemberFromGroup);
+
+// Block a member in the group
+router.put("/block-member", groupController.blockMemberInGroup);
+
+// Unblock a member in the group
+router.put('/unblock-member', groupController.unblockMember);
+
+// Change a member's role in the group
+router.put("/change-role", groupController.changeMemberRole);
+
+
+/** ================================================
+ * Group Activity Routes
+ * ================================================ */
+
+// Get group activity history by conversation ID
+router.get("/activity/:conversationId", groupController.getGroupActivityHistory);
+
+
+/** ================================================
+ * Group Invitation Routes
+ * ================================================ */
+
+// Send an invitation to join the group
 router.post("/invite", groupController.sendGroupInvite);
-router.post("/", groupController.createGroup);
+
+// Handle group invite responses
 router.post("/invite/response", groupController.handleGroupInvite);
+
+
+/** ================================================
+ * Admin Management Routes
+ * ================================================ */
+
+// Check if a user is an admin of the group
+router.get("/admin/:userId/:conversationId", groupController.isAdmin);
+
+
+/** ================================================
+ * Group Creation Routes
+ * ================================================ */
+
+// Create a new group
+router.post("/", groupController.createGroup);
 
 module.exports = router;

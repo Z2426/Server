@@ -2,27 +2,38 @@ const express = require("express");
 const router = express.Router();
 const messageController = require("../controllers/chatController");
 
-// lấy danh sách hội thoại user có tham gia
+/** ================================================
+ * Message Routes
+ * ================================================ */
+
+// Get a list of conversations a user is part of
 router.get("/users/:userId/conversations", messageController.getConversationsByUser);
-// API lấy thông tin cuộc hội thoại theo ID
+
+// Get conversation details by conversation ID
 router.get('/conversations/:conversationId', messageController.getConversationById);
 
-// Gửi tin nhắn trả lời
+// Send a reply to a message
 router.post("/message/reply", messageController.replyToMessageController);
 
-// Gửi tin nhắn cá nhân
+// Send a personal message
 router.post("/message/send", messageController.sendMessageController);
 
-// Đánh dấu tin nhắn là đã đọc
+// Mark messages as read
 router.put("/message/mark-read", messageController.markMessagesAsReadController);
 
-// Tìm kiếm tin nhắn theo nội dung
+// Search for messages by content
 router.get("/message/search", messageController.searchMessagesByContentController);
 
-// Chặn/mở khóa người dùng trong tin nhắn
+// Block/unblock a user in a conversation
 router.put("/message/block-user/:userId", messageController.toggleBlockUserMessageController);
-// Mở cuộc hội thoại tin nhắn
+
+/** ================================================
+ * Conversation Routes
+ * ================================================ */
+
+// Get all messages in a conversation by conversation ID
 router.get("/conversation/:conversationId/messages", messageController.getAllMessagesInConversation);
-// Mở đoạn thoại cá nhân
+
+// Create a personal conversation (message thread)
 router.post('/message/create', messageController.createPersonalConversation);
 module.exports = router;
