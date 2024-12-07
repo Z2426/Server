@@ -1,4 +1,5 @@
 const { redisClient } = require("../../shared/redis/redisClient");
+
 const setUserStatus = async (userId, status) => {
     const key = `user:${userId}:status`;
     const expiration = 3600;

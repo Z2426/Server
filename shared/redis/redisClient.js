@@ -66,8 +66,6 @@ const sendToQueue = async (queueName, action, data) => {
     }
 };
 
-
-
 const unsubscribeFromChannels = async (channels) => {
     if (!Array.isArray(channels)) {
         console.error('channels must be an array');
@@ -147,7 +145,7 @@ const subscribeToChannels = async (channels, callback) => {
         console.error('Error during Redis subscribe:', err);
     }
 };
-// Xuất các hàm
+
 module.exports = {
     connectToRedis,
     subscribeToChannels,

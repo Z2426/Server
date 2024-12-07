@@ -1,6 +1,6 @@
-const { redisClient, redisSubscriber, connectToRedis, generateTaskId, sendMessageToRedis } = require("../../shared/redis/redisClient");
-const MIN_WEIGHT = 0.05;  // limit each  group
-const MAX_WEIGHT = 0.6;   //limit max each group
+const { redisClient, redisSubscriber, generateTaskId, sendMessageToRedis } = require("../../shared/redis/redisClient");
+const MIN_WEIGHT = 0.05;
+const MAX_WEIGHT = 0.6;
 const GROUPS = ["friend", "interest", "popular"];
 const INITIAL_WEIGHTS = {
     friend: 0.2,
