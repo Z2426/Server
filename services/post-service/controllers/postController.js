@@ -245,9 +245,11 @@ exports.markPostAsViewed = async (req, res) => {
 
 exports.getUserPosts = async (req, res) => {
   try {
-    const userId = req.params.userId;
+    const guestId = req.params.userId;
+    const { userId } = req.body.user;
     const { page = 1, limit = 10 } = req.query;
-    const posts = await postService.getUserPosts(userId, parseInt(page), parseInt(limit));
+    const isOwnPost = userId === guestId;
+    const posts = await postService.getUserPosts(guestId, parseInt(page), parseInt(limit), isOwnPost);
     return res.status(200).json(posts);
   } catch (error) {
     console.error(error);

@@ -98,7 +98,7 @@ exports.createPost = async (postData) => {
     throw new Error('Error creating post: ' + error.message);
   }
 };
-exports.getUserPosts = async (userId, page = 1, limit = 10) => {
+exports.getUserPosts = async (userId, page = 1, limit = 10, isOwnPost = false) => {
   try {
     const skip = (page - 1) * limit;
     const posts = await Post.find({ userId })
@@ -108,15 +108,23 @@ exports.getUserPosts = async (userId, page = 1, limit = 10) => {
     if (posts.length === 0) {
       return [];
     }
+    const filteredPosts = posts.filter(post => {
+      if (!isOwnPost && post.status === 'rejected') {
+        return false;
+      }
+      return true;
+    });
+    if (filteredPosts.length === 0) {
+      return [];
+    }
     const userInfo = await requestWithCircuitBreaker(
       `${process.env.URL_USER_SERVICE}/getUsersBulk?userIds=${userId}`,
       'GET'
     );
-    const postsWithUserInfo = posts.map(post => ({
+    const postsWithUserInfo = filteredPosts.map(post => ({
       ...post.toObject(),
       userDetails: userInfo || null,
     }));
-    console.log(postsWithUserInfo);
     return postsWithUserInfo;
   } catch (error) {
     console.error(error);
