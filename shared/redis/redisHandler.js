@@ -1,5 +1,53 @@
 const { redisClient } = require("../../shared/redis/redisClient");
-
+const getFriendsList = async (userId) => {
+    const redisKey = `user:${userId}:friends`;
+    try {
+        const exists = await redisClient.exists(redisKey);
+        if (exists) {
+            const friendsList = await redisClient.smembers(redisKey);
+            console.log(`The friends list for ${userId}:`, friendsList);
+            return friendsList;
+        } else {
+            console.log(`No friends list found for ${userId}.`);
+            return [];
+        }
+    } catch (error) {
+        console.error('Error fetching the friends list:', error);
+        return [];
+    }
+};
+const checkFriendsExist = async (userId) => {
+    const redisKey = `user:${userId}:friends`;
+    try {
+        const exists = await redisClient.exists(redisKey);
+        if (exists) {
+            console.log(`The friends list for ${userId} exists.`);
+            return true;
+        } else {
+            console.log(`The friends list for ${userId} does not exist.`);
+            return false;
+        }
+    } catch (error) {
+        console.error('Error checking the existence of the friends list:', error);
+        return false;
+    }
+};
+const updateFriends = async (userId, friendsList) => {
+    const redisKey = `user:${userId}:friends`;
+    const expiration = 600;
+    if (!Array.isArray(friendsList) || friendsList.length === 0) {
+        console.log('The friends list is not valid!');
+        return;
+    }
+    try {
+        const response = await redisClient.sadd(redisKey, ...friendsList);
+        await redisClient.expire(redisKey, expiration);
+        console.log(`The friends list for ${userId} has been saved to Redis with TTL of ${expiration} seconds.`);
+        console.log('Number of members added to the set:', response);
+    } catch (error) {
+        console.error('Error saving the friends list to Redis:', error);
+    }
+};
 const setUserStatus = async (userId, status) => {
     const key = `user:${userId}:status`;
     const expiration = 3600;
@@ -78,5 +126,10 @@ module.exports = {
     setUserStatus,
     addUserToGroup,
     removeUserFromGroup,
-    getUsersInGroup
+    getUsersInGroup,
+    updateFriends,
+    checkFriendsExist,
+    getFriendsList
+
+
 };

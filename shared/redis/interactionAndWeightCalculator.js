@@ -178,10 +178,12 @@ const getPostDistributionByGroup = async (userId, numPosts = 7) => {
         }
         totalPosts = Object.values(weightedCounts).reduce((sum, count) => sum + count, 0);
     }
+    console.log(weightedCounts)
     return weightedCounts;
 };
 module.exports = {
     handleUserInteraction,
     getUserWeights,
-    getPostDistributionByGroup
+    getPostDistributionByGroup,
+    getUserTopTopics
 };

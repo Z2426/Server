@@ -1,6 +1,6 @@
-
 const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
+
 const userSchema = new mongoose.Schema({
   firstName: {
     type: String,
@@ -13,7 +13,7 @@ const userSchema = new mongoose.Schema({
   email: {
     type: String,
     required: [true, "Email is required!"],
-    unique: true,
+    unique: true,  // Đây sẽ tạo chỉ mục unique tự động
     lowercase: true,
     match: [/^\S+@\S+\.\S+$/, "Please enter a valid email address"]
   },
@@ -58,7 +58,7 @@ const userSchema = new mongoose.Schema({
   province: { type: String },
   school: { type: String },
   address: { type: String },
-  hobby: { type: String },
+  hobby: { type: [String], default: [] },
   role: {
     type: String,
     enum: ['User', 'Admin'],
@@ -79,6 +79,5 @@ const userSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
-const Users = mongoose.model("Users", userSchema);
-module.exports = Users;
 
+module.exports = mongoose.model("Users", userSchema);

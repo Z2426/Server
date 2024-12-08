@@ -5,6 +5,19 @@ const { sendToQueue } = require("../shared/redis/redisClient");
 /** ================================================
  *                User Search and Retrieval
  * ================================================ */
+exports.getFriendIds = async (userId) => {
+  try {
+    const user = await Users.findById(userId).select('friends');
+    if (!user) {
+      console.log('User not found');
+      return [];
+    }
+    return user.friends;
+  } catch (error) {
+    console.error('Error fetching friend IDs:', error);
+    return [];
+  }
+};
 exports.findUsers = async (criteria) => {
   const query = {};
   if (criteria.age) {
@@ -30,6 +43,9 @@ exports.findUsers = async (criteria) => {
       { firstName: { $regex: criteria.name, $options: 'i' } },
       { lastName: { $regex: criteria.name, $options: 'i' } }
     ];
+  }
+  if (criteria.interest) {
+    query.interests = { $regex: criteria.interest, $options: 'i' };
   }
   ['workplace', 'province', 'school', 'address'].forEach(field => {
     if (criteria[field]) {

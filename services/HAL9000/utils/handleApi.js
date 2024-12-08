@@ -20,7 +20,7 @@ exports.processInputFindUser = (inputData) => {
     const fieldMappings = {
         "ADDRESS:ADDRESS": "address",
         "AGE:AGE": "age",
-        "HOBBY:HOBBY": "hobby",
+        "HOBBY:HOBBY": "interest",
         "NAME:NAME": "name",
         "Province:Province": "province",
         "SCHOOL:SCHOOL": "school",

@@ -1,5 +1,6 @@
 const { createDuplicateClient } = require("./shared/redis/redisClient");
-const { isFriendOf } = require('./services/userService')
+const { updateFriends } = require("./shared/redis/redisHandler")
+const { isFriendOf, getFriendIds } = require('./services/userService')
 const redisClient = createDuplicateClient();
 const redisSubscriber = createDuplicateClient();
 const listenForEvents = () => {
@@ -14,6 +15,21 @@ const listenForEvents = () => {
             console.error('Error processing check_friends_request:', error);
         }
     });
+    redisSubscriber.subscribe('update_friendship', async (message) => {
+        try {
+            const { idTask, userId } = JSON.parse(message);
+            const listFriend = await getFriendIds(userId)
+            console.log(listFriend)
+            const updateFriend = await updateFriends(userId, listFriend);
+            console.log(updateFriend)
+            console.log(`Received check friends update request for user ${userId}:${updateFriend}`);
+            const result = { idTask, updateFriend };
+            redisClient.publish(`${idTask}`, JSON.stringify(result));
+        } catch (error) {
+            console.error('Error processing update_friendship:', error);
+        }
+    });
+
 };
 module.exports = {
     listenForEvents

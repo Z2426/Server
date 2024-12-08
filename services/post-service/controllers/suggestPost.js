@@ -8,7 +8,6 @@ exports.getNewsfeed = async (req, res) => {
         const { userId } = req.body.user;
         const { page = 1, limit = 10 } = req.query;
         const newsfeed = await suggestPost.getNewsfeed(userId, page, limit);
-
         return res.status(200).json({
             message: 'Newsfeed list',
             data: newsfeed,

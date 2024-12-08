@@ -4,11 +4,12 @@ const {
     removeUserSocket,
     setUserStatus,
     addUserToGroup,
-    removeUserFromGroup
+    removeUserFromGroup,
+    checkFriendsExist
 } = require("../shared/redis/redisHandler");
-const { redisSubscriber } = require("../shared/redis/redisClient");
+const { redisSubscriber, sendMessageToRedis } = require("../shared/redis/redisClient");
 const {
-    connectToRedis, sendToQueue
+    connectToRedis, sendToQueue, generateTaskId
 } = require("../shared/redis/redisClient");
 connectToRedis()
 
@@ -46,6 +47,13 @@ const createSocketServer = (server) => {
                 await addUserSocket(userId, socket.id);
                 await setUserStatus(userId, "online");
                 console.log(`User ${userId} is now online.`);
+                const updateFriend = await checkFriendsExist(userId)
+                console.log("Ket qua sư kien ", updateFriend)
+                if (!updateFriend) {
+                    console.log("Gui su kien cpa nhat friend")
+                    const isTask = generateTaskId();
+                    await sendMessageToRedis("update_friendship", { isTask, userId })
+                }
             } catch (error) {
                 console.error("Error in userOnline:", error);
             }
