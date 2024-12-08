@@ -1,9 +1,18 @@
 require('dotenv').config();
 const requestWithCircuitBreaker = require('../shared/utils/circuitBreaker.js');
 exports.findUser = async (criteria) => {
-    const apiUrl = `${process.env.URL_USER_SERVICE}/find-users`;
+    const params = new URLSearchParams({
+        age: criteria.age,
+        name: criteria.name,
+        workplace: criteria.workplace,
+        province: criteria.province,
+        school: criteria.school,
+        address: criteria.address,
+        interest: criteria.interest
+    });
+    const apiUrl = `${process.env.URL_USER_SERVICE}/find-users?${params.toString()}`;
     try {
-        const response = await requestWithCircuitBreaker(apiUrl, 'GET', null, { params: { criteria } });
+        const response = await requestWithCircuitBreaker(apiUrl, 'GET', null, {});
         if (response) {
             return response.data;
         } else {
@@ -14,9 +23,10 @@ exports.findUser = async (criteria) => {
         throw new Error('User search failed');
     }
 };
+
 exports.processInputFindUser = (inputData) => {
     const criteria = {};
-    const allowedKeys = ['age', 'name', 'workplace', 'hobby', 'address', 'province'];
+    const allowedKeys = ['age', 'name', 'workplace', 'interest', 'address', 'province'];
     const fieldMappings = {
         "ADDRESS:ADDRESS": "address",
         "AGE:AGE": "age",
@@ -27,8 +37,10 @@ exports.processInputFindUser = (inputData) => {
         "WORKPLACE:WORKPLACE": "workplace"
     };
     for (const key in inputData) {
-        if (allowedKeys.includes(fieldMappings[key]) && inputData[key]) {
-            criteria[fieldMappings[key]] = inputData[key];
+        if (fieldMappings[key] && allowedKeys.includes(fieldMappings[key])) {
+            if (inputData[key] && inputData[key].length > 0) {
+                criteria[fieldMappings[key]] = inputData[key].join(', ');
+            }
         }
     }
     return criteria;

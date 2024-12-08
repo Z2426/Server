@@ -6,15 +6,16 @@ const mongoose = require('mongoose');
  * ================================================ */
 exports.finUserByInfo = async (req, res) => {
   try {
-    const { age, name, workplace, province, school, address } = req.query;
-    const criteria = {
-      age: age,
-      name: name,
-      workplace: workplace,
-      province: province,
-      school: school,
-      address: address
-    };
+    let { age, name, workplace, province, school, address, interest } = req.query;
+    const criteria = {};
+    if (age && age !== 'undefined') criteria.age = age;
+    if (name && name !== 'undefined') criteria.name = name;
+    if (workplace && workplace !== 'undefined') criteria.workplace = workplace;
+    if (province && province !== 'undefined') criteria.province = province;
+    if (school && school !== 'undefined') criteria.school = school;
+    if (address && address !== 'undefined') criteria.address = address;
+    if (interest && interest !== 'undefined') criteria.interest = interest;
+    console.log("Criteria after filtering undefined values:", criteria);
     const users = await userService.findUsers(criteria);
     return res.status(200).json({
       success: true,

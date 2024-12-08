@@ -30,7 +30,7 @@ const createSocketServer = (server) => {
                 console.log(message)
                 if (notification && notification.userId) {
                     io.to(notification.reciveId).emit("receiveNotification", notification);
-                    console.log(`Notification sent to user ${notification.userId}:`, notification.message);
+                    //console.log(`Notification sent to user ${notification.userId}:`, notification.message);
                 }
             } catch (error) {
                 console.error('Error handling Redis message:', error);

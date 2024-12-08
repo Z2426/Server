@@ -21,17 +21,15 @@ exports.aiRequestHandler = async (prompt) => {
             return { message: "input invalid", text };
         }
         if (Object.keys(entities).length === 0 || !Object.values(entities).some(arr => arr.length > 0)) {
-            console.log('No enities detected.');
             return { message: "input invalid", text };
         }
         const primaryIntent = intents[0];
-        console.log(`Detected intent: ${primaryIntent.name} with confidence ${primaryIntent.confidence}`);
         let result = { type: "other" };
         switch (primaryIntent.name) {
             case 'find_person':
                 result.type = "find person";
                 const criteria = processInputFindUser(filteredEntities)
-                console.log("start process find person");
+                console.log("start process find person", criteria);
                 result.info = await findUser(criteria)
                 break;
             case 'text_prompt':
