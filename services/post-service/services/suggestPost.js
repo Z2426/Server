@@ -10,7 +10,7 @@ exports.getNewsfeed = async (userId, page = 1, limit = 10) => {
         const postCounts = await getPostDistributionByGroup(userId, limit);
         const interest = await getUserTopTopics(userId);
         const friends = await getFriendsList(userId);
-
+        console.log("friend ", friends)
         // Match conditions for posts
         const matchConditions = {
             userId: { $ne: userId },  // Exclude the user's own posts

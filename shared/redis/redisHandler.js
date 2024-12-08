@@ -4,7 +4,7 @@ const getFriendsList = async (userId) => {
     try {
         const exists = await redisClient.exists(redisKey);
         if (exists) {
-            const friendsList = await redisClient.smembers(redisKey);
+            const friendsList = await redisClient.sMembers(redisKey);
             console.log(`The friends list for ${userId}:`, friendsList);
             return friendsList;
         } else {
@@ -39,9 +39,12 @@ const updateFriends = async (userId, friendsList) => {
         console.log('The friends list is not valid!');
         return;
     }
+    const validFriendsList = friendsList.map(friend => String(friend));
+    console.log(validFriendsList)
     try {
-        const response = await redisClient.sadd(redisKey, ...friendsList);
+        const response = await redisClient.sAdd(redisKey, ...validFriendsList);
         await redisClient.expire(redisKey, expiration);
+        console.log(response)
         console.log(`The friends list for ${userId} has been saved to Redis with TTL of ${expiration} seconds.`);
         console.log('Number of members added to the set:', response);
     } catch (error) {

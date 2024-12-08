@@ -257,11 +257,22 @@ exports.getUserPosts = async (req, res) => {
   }
 };
 exports.searchPosts = async (req, res) => {
-  const { keyword, page, limit } = req.query;
-  const { userId } = req.body.user; // Giả sử bạn đã lưu thông tin người dùng trong req.user
-
+  const { keyword, page, limit, startDate, endDate, categories } = req.query;
+  const { userId } = req.body.user;
+  const pageNum = parseInt(page) || 1;
+  const limitNum = parseInt(limit) || 10;
+  const filters = {};
+  if (startDate && endDate) {
+    filters.startDate = startDate;
+    filters.endDate = endDate;
+  }
+  if (categories) {
+    if (typeof categories === 'string') {
+      filters.categories = categories.split(',').map((item) => item.trim());
+    }
+  }
   try {
-    const result = await postService.searchPosts(userId, keyword, parseInt(page), parseInt(limit));
+    const result = await postService.searchPosts(userId, keyword, pageNum, limitNum, filters);
     return res.json(result);
   } catch (error) {
     return res.status(500).json({ message: error.message });

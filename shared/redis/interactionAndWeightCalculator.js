@@ -132,17 +132,6 @@ const classifyTypeInteract = async (userId, friendId, typePost) => {
         }
     });
 };
-const handleUserInteraction = async (userId, friendId, postId, postCategory, action) => {
-    try {
-        await updateUserInterest(userId, postId, postCategory, action);
-        const interactionType = await classifyTypeInteract(userId, friendId, postCategory);
-        const updatedWeights = await saveInteractionAndUpdateWeights(userId, interactionType);
-        console.log(`${userId}  trong so `, updatedWeights)
-        return updatedWeights;
-    } catch (error) {
-        throw error;
-    }
-};
 const getUserWeights = async (userId) => {
     const weightKey = `user:${userId}:weights`;
     try {
@@ -158,6 +147,64 @@ const getUserWeights = async (userId) => {
         return parsedWeights;
     } catch (error) {
         return INITIAL_WEIGHTS;
+    }
+};
+const compareWeights = (oldWeight, updatedWeights) => {
+    const result = [];
+
+    // Kiểm tra sự thay đổi giữa oldWeight và updatedWeights
+    for (const key in oldWeight) {
+        if (oldWeight.hasOwnProperty(key) && updatedWeights.hasOwnProperty(key)) {
+            const oldValue = oldWeight[key];
+            const newValue = updatedWeights[key];
+
+            // Nếu giá trị mới lớn hơn giá trị cũ, nhóm này đã tăng
+            if (newValue > oldValue) {
+                result.push({
+                    group: key,
+                    oldValue: oldValue,
+                    newValue: newValue,
+                    change: 'increased'
+                });
+            }
+            // Nếu giá trị mới nhỏ hơn giá trị cũ, nhóm này đã giảm
+            else if (newValue < oldValue) {
+                result.push({
+                    group: key,
+                    oldValue: oldValue,
+                    newValue: newValue,
+                    change: 'decreased'
+                });
+            } else {
+                result.push({
+                    group: key,
+                    oldValue: oldValue,
+                    newValue: newValue,
+                    change: 'no change'
+                });
+            }
+        }
+    }
+
+    return result;
+};
+
+const handleUserInteraction = async (userId, friendId, postId, postCategory, action) => {
+    try {
+        const oldWeight = await getUserWeights(userId)
+        await updateUserInterest(userId, postId, postCategory, action);
+        const interactionType = await classifyTypeInteract(userId, friendId, postCategory);
+        const updatedWeights = await saveInteractionAndUpdateWeights(userId, interactionType);
+        const increasedGroups = compareWeights(oldWeight, updatedWeights);
+        if (increasedGroups.length > 0) {
+            console.log(`Groups that increased for user ${userId}:`);
+            console.log(increasedGroups);
+        } else {
+            console.log(`No groups increased for user ${userId}.`);
+        }
+        return updatedWeights;
+    } catch (error) {
+        throw error;
     }
 };
 const getPostDistributionByGroup = async (userId, numPosts = 7) => {

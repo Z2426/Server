@@ -71,7 +71,6 @@ const createSocketServer = (server) => {
                     postId: data.post_id,
                     postCategory: data.post_category,
                 };
-                console.log("task", taskData)
                 await sendToQueue('process_post', 'handleUserInteraction', taskData);
             } catch (error) {
                 console.error('Error processing interactpost:', error);

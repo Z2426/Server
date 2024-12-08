@@ -19,9 +19,7 @@ const listenForEvents = () => {
         try {
             const { idTask, userId } = JSON.parse(message);
             const listFriend = await getFriendIds(userId)
-            console.log(listFriend)
             const updateFriend = await updateFriends(userId, listFriend);
-            console.log(updateFriend)
             console.log(`Received check friends update request for user ${userId}:${updateFriend}`);
             const result = { idTask, updateFriend };
             redisClient.publish(`${idTask}`, JSON.stringify(result));

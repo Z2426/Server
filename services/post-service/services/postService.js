@@ -18,24 +18,34 @@ exports.getPostById = async (postId) => {
     throw error; // Ném lỗi ra ngoài để controller xử lý
   }
 };
-exports.searchPosts = async (userId, keyword, page = 1, limit = 10) => {
+exports.searchPosts = async (userId, keyword, page = 1, limit = 10, filters = {}) => {
   try {
     const regex = new RegExp(keyword, 'i');
-    const posts = await Post.find({
+    const query = {
       $or: [
         { visibility: 'public', description: regex },
         { visibility: 'friends', description: regex, specifiedUsers: userId },
         { visibility: 'private', userId: userId, description: regex }
       ]
-    })
+    };
+    if (filters.categories && Array.isArray(filters.categories)) {
+      query.categories = { $in: filters.categories };
+    }
+    if (filters.startDate || filters.endDate) {
+      query.createdAt = {};
+      if (filters.startDate) query.createdAt.$gte = new Date(filters.startDate);
+      if (filters.endDate) query.createdAt.$lte = new Date(filters.endDate);
+    }
+    const posts = await Post.find(query)
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit);
+    const totalPosts = await Post.countDocuments(query);
     return {
       posts,
-      totalPosts: posts.length,
+      totalPosts,
       currentPage: page,
-      totalPages: Math.ceil(posts.length / limit)
+      totalPages: Math.ceil(totalPosts / limit)
     };
   } catch (error) {
     console.error('Error searching posts:', error.message);

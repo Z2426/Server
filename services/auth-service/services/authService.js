@@ -53,6 +53,7 @@ exports.loginUser = async (email, password) => {
             lastLogin: new Date()
         };
         await requestWithCircuitBreaker(urlUpdateInfoLogin, "PUT", infoLogin);
+        user.password = undefined;
         return { user, token };
     } catch (error) {
         console.log(error)
