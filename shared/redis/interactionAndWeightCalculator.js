@@ -214,7 +214,7 @@ const handleUserInteraction = async (userId, friendId, postId, postCategory, act
 const getPostDistributionByGroup = async (userId, numPosts = 20) => {
     // Fetch user-specific weights from Redis or default values
     const weights = await getUserWeights(userId);
-    console.log(weights)
+    // console.log(weights)
     // Calculate the weighted count of posts for each group
     const weightedCounts = {};
     GROUPS.forEach(group => {
@@ -236,7 +236,7 @@ const getPostDistributionByGroup = async (userId, numPosts = 20) => {
         }
         totalPosts = Object.values(weightedCounts).reduce((sum, count) => sum + count, 0);
     }
-    console.log(weightedCounts)
+    //console.log(weightedCounts)
     // Return the number of posts for each group
     return weightedCounts;
 };
