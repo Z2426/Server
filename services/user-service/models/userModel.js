@@ -13,7 +13,7 @@ const userSchema = new mongoose.Schema({
   email: {
     type: String,
     required: [true, "Email is required!"],
-    unique: true,  // Đây sẽ tạo chỉ mục unique tự động
+    unique: true,
     lowercase: true,
     match: [/^\S+@\S+\.\S+$/, "Please enter a valid email address"]
   },
@@ -58,7 +58,6 @@ const userSchema = new mongoose.Schema({
   province: { type: String },
   school: { type: String },
   address: { type: String },
-  hobby: { type: [String], default: [] },
   role: {
     type: String,
     enum: ['User', 'Admin'],

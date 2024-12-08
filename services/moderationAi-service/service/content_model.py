@@ -25,6 +25,8 @@ toxicity_classifier = pipeline("text-classification", model="unitary/toxic-bert"
 # Zero-shot text classification pipeline
 text_classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
 
+
+TOKEN_TOXIC_CONTENT =os.getenv("TOKEN_TOXIC_CONTENT")
 # Sensitive labels for image classification
 sensitive_labels = [
     "toxic", "nudity", "violence", "horror", "blood", "gore", "murder", 
@@ -112,20 +114,33 @@ def translate_vietnamese_to_english(vietnamese_text):
 # Check if text is in Vietnamese
 def is_vietnamese(text):
     return any(ord(c) > 127 for c in text)
-
-# Check if text contains sensitive content (toxicity)
+def analyze_vietnamese_text_with_wit_ai(text, token):
+    url = f"https://api.wit.ai/message?v=20241208&q={text}"
+    headers = {
+        'Authorization': f'Bearer {token}',
+        'Content-Type': 'application/json'
+    }
+    response = requests.get(url, headers=headers)
+    if response.status_code == 200:
+        return response.json() 
+    else:
+        logger.error(f"Wit.ai API request failed with status code {response.status_code}")
+        return {'intents': []}  
 def check_sensitive_text(text):
     if is_vietnamese(text):
-        text = translate_vietnamese_to_english(text)
-    
-    result = toxicity_classifier(text)
-    toxicity_score = result[0]['score'] if isinstance(result, list) else result['score']
-    
-    logger.info(f"Toxicity score: {toxicity_score}")
-    
-    if toxicity_score > 0.5:
-        return True
-    return False
+        analysis_result = analyze_vietnamese_text_with_wit_ai(text, TOKEN_TOXIC_CONTENT)
+        if any(intent['name'] == 'toxic_content' for intent in analysis_result.get('intents', [])):
+            return True  
+        return False  
+        
+    else:
+        result = toxicity_classifier(text)
+        toxicity_score = result[0]['score'] if isinstance(result, list) else result['score']       
+        logger.info(f"Toxicity score: {toxicity_score}")  
+        if toxicity_score > 0.5:
+            return True
+        return False
+
 
 # Classify text based on predefined topics
 def classify_text(content):
