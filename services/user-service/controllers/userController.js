@@ -15,7 +15,6 @@ exports.finUserByInfo = async (req, res) => {
     if (school && school !== 'undefined') criteria.school = school;
     if (address && address !== 'undefined') criteria.address = address;
     if (interest && interest !== 'undefined') criteria.interest = interest;
-    console.log("Criteria after filtering undefined values:", criteria);
     const users = await userService.findUsers(criteria);
     return res.status(200).json({
       success: true,

@@ -29,11 +29,10 @@ exports.aiRequestHandler = async (prompt) => {
             case 'find_person':
                 result.type = "find person";
                 const criteria = processInputFindUser(filteredEntities)
-                console.log("start process find person", criteria);
                 result.info = await findUser(criteria)
                 break;
             case 'text_prompt':
-                console.log("text_prompt", filteredEntities['textSubject:textSubject']);
+                // console.log("text_prompt", filteredEntities['textSubject:textSubject']);
                 result.type = "text_prompt";
                 result.text = await generateText(prompt)
                 console.log(result.text)

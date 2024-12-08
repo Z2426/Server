@@ -1,14 +1,16 @@
-const { redisClient } = require("../../shared/redis/redisClient");
+//const { redisClient } = require("../../shared/redis/redisClient");
+const { createDuplicateClient } = require("../../shared/redis/redisClient");
+const redisClient = createDuplicateClient();
 const getFriendsList = async (userId) => {
     const redisKey = `user:${userId}:friends`;
     try {
         const exists = await redisClient.exists(redisKey);
         if (exists) {
             const friendsList = await redisClient.sMembers(redisKey);
-            console.log(`The friends list for ${userId}:`, friendsList);
+            //console.log(`The friends list for ${userId}:`, friendsList);
             return friendsList;
         } else {
-            console.log(`No friends list found for ${userId}.`);
+            //console.log(`No friends list found for ${userId}.`);
             return [];
         }
     } catch (error) {
@@ -21,7 +23,7 @@ const checkFriendsExist = async (userId) => {
     try {
         const exists = await redisClient.exists(redisKey);
         if (exists) {
-            console.log(`The friends list for ${userId} exists.`);
+            // console.log(`The friends list for ${userId} exists.`);
             return true;
         } else {
             console.log(`The friends list for ${userId} does not exist.`);
@@ -40,17 +42,21 @@ const updateFriends = async (userId, friendsList) => {
         return;
     }
     const validFriendsList = friendsList.map(friend => String(friend));
-    console.log(validFriendsList)
+    //console.log(validFriendsList);
     try {
-        const response = await redisClient.sAdd(redisKey, ...validFriendsList);
+        await redisClient.del(redisKey);
+        const multi = redisClient.multi();
+        validFriendsList.forEach(friend => {
+            multi.sAdd(redisKey, friend);
+        });
+        await multi.exec();
         await redisClient.expire(redisKey, expiration);
-        console.log(response)
-        console.log(`The friends list for ${userId} has been saved to Redis with TTL of ${expiration} seconds.`);
-        console.log('Number of members added to the set:', response);
+        //console.log(`The friends list for ${userId} has been saved to Redis with TTL of ${expiration} seconds.`);
     } catch (error) {
         console.error('Error saving the friends list to Redis:', error);
     }
 };
+
 const setUserStatus = async (userId, status) => {
     const key = `user:${userId}:status`;
     const expiration = 3600;

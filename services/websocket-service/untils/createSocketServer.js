@@ -48,8 +48,7 @@ const createSocketServer = (server) => {
                 await setUserStatus(userId, "online");
                 console.log(`User ${userId} is now online.`);
                 const updateFriend = await checkFriendsExist(userId)
-                console.log("Ket qua sư kien ", updateFriend)
-                if (!updateFriend) {
+                if (true) {
                     console.log("Gui su kien cpa nhat friend")
                     const isTask = generateTaskId();
                     await sendMessageToRedis("update_friendship", { isTask, userId })

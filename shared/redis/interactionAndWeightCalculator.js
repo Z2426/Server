@@ -1,4 +1,9 @@
-const { redisClient, redisSubscriber, generateTaskId, sendMessageToRedis } = require("../../shared/redis/redisClient");
+// const { redisClient, redisSubscriber, generateTaskId, sendMessageToRedis } = require("../../shared/redis/redisClient");
+const { generateTaskId, sendMessageToRedis } = require("../../shared/redis/redisClient");
+
+const { createDuplicateClient } = require("../../shared/redis/redisClient");
+const redisClient = createDuplicateClient();
+const redisSubscriber = createDuplicateClient();
 const MIN_WEIGHT = 0.05;
 const MAX_WEIGHT = 0.6;
 const GROUPS = ["friend", "interest", "popular"];
@@ -12,13 +17,12 @@ const getUserTopTopics = async (user_id, limit = 2) => {
     const key = `user:${user_id}:topics`;
     try {
         const data = await redisClient.zRangeWithScores(key, 0, -1);
-
         if (data.length === 0) {
             return {};
         }
-
         const sortedData = data.reverse();
         const topInterests = sortedData.slice(0, limit).map(item => item.value);
+        //console.log("Top intestes", topInterests)
         return topInterests;
     } catch (err) {
         return null;
@@ -26,7 +30,6 @@ const getUserTopTopics = async (user_id, limit = 2) => {
 };
 function updateWeights(interactions, baseWeights) {
     const interactionCount = { friend: 0, interest: 0, popular: 0 };
-
     interactions.forEach((interaction) => {
         if (interactionCount[interaction] !== undefined) {
             interactionCount[interaction] += 1;
@@ -90,7 +93,6 @@ const saveInteractionAndUpdateWeights = async (userId, interaction) => {
         throw error;
     }
 }
-
 const updateUserInterest = async (user_id, post_id, post_category, action) => {
     const action_points = {
         'Like': 3,
@@ -134,31 +136,34 @@ const classifyTypeInteract = async (userId, friendId, typePost) => {
 };
 const getUserWeights = async (userId) => {
     const weightKey = `user:${userId}:weights`;
+    //console.log(`[getUserWeights] Fetching weights for userId: ${userId}, key: ${weightKey}`);
     try {
         const weights = await redisClient.hGetAll(weightKey);
+        //console.log(`[getUserWeights] Retrieved weights:`, weights);
 
         if (!weights || Object.keys(weights).length === 0) {
+            //console.warn(`[getUserWeights] No weights found. Returning INITIAL_WEIGHTS.`);
             return INITIAL_WEIGHTS;
         }
         const parsedWeights = {};
         for (let group of GROUPS) {
             parsedWeights[group] = parseFloat(weights[group]) || INITIAL_WEIGHTS[group];
+            //console.log(`[getUserWeights] Parsed weight for group "${group}":`, parsedWeights[group]);
         }
+        //console.log("[getUserWeights] Successfully fetched and parsed weights:", parsedWeights);
         return parsedWeights;
     } catch (error) {
+        console.error(`[getUserWeights] Error occurred:`, error);
         return INITIAL_WEIGHTS;
     }
 };
+
 const compareWeights = (oldWeight, updatedWeights) => {
     const result = [];
-
-    // Kiểm tra sự thay đổi giữa oldWeight và updatedWeights
     for (const key in oldWeight) {
         if (oldWeight.hasOwnProperty(key) && updatedWeights.hasOwnProperty(key)) {
             const oldValue = oldWeight[key];
             const newValue = updatedWeights[key];
-
-            // Nếu giá trị mới lớn hơn giá trị cũ, nhóm này đã tăng
             if (newValue > oldValue) {
                 result.push({
                     group: key,
@@ -167,7 +172,6 @@ const compareWeights = (oldWeight, updatedWeights) => {
                     change: 'increased'
                 });
             }
-            // Nếu giá trị mới nhỏ hơn giá trị cũ, nhóm này đã giảm
             else if (newValue < oldValue) {
                 result.push({
                     group: key,
@@ -207,25 +211,33 @@ const handleUserInteraction = async (userId, friendId, postId, postCategory, act
         throw error;
     }
 };
-const getPostDistributionByGroup = async (userId, numPosts = 7) => {
+const getPostDistributionByGroup = async (userId, numPosts = 20) => {
+    // Fetch user-specific weights from Redis or default values
     const weights = await getUserWeights(userId);
     console.log(weights)
+    // Calculate the weighted count of posts for each group
     const weightedCounts = {};
     GROUPS.forEach(group => {
         weightedCounts[group] = Math.round(weights[group] * numPosts);
     });
+
+    // Adjust the total number of posts if it doesn't match `numPosts`
     let totalPosts = Object.values(weightedCounts).reduce((sum, count) => sum + count, 0);
+
     while (totalPosts !== numPosts) {
         if (totalPosts < numPosts) {
+            // Increase posts in the group with the highest weight
             const maxGroup = Object.keys(weightedCounts).reduce((max, group) => weights[group] > weights[max] ? group : max);
             weightedCounts[maxGroup] += 1;
         } else if (totalPosts > numPosts) {
+            // Decrease posts in the group with the lowest weight
             const minGroup = Object.keys(weightedCounts).reduce((min, group) => weights[group] < weights[min] ? group : min);
             weightedCounts[minGroup] -= 1;
         }
         totalPosts = Object.values(weightedCounts).reduce((sum, count) => sum + count, 0);
     }
     console.log(weightedCounts)
+    // Return the number of posts for each group
     return weightedCounts;
 };
 module.exports = {

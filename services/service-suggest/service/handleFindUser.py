@@ -31,7 +31,6 @@ def get_user_data(user_id):
     else:
         return [], []
 
-# Add suggested friends to a user's profile
 def add_to_suggest_friends(user_id, user_ids_to_add):
     try:
         user_id = ObjectId(user_id)
@@ -41,26 +40,24 @@ def add_to_suggest_friends(user_id, user_ids_to_add):
     user_data = users_collection.find_one({"_id": user_id}, {"suggestFriends": 1})
     if user_data:
         suggest_friends = user_data.get("suggestFriends", [])
-        suggest_friends_set = set([str(friend["_id"]) for friend in suggest_friends])
+        suggest_friends_set = set([str(friend) for friend in suggest_friends])  
         updated_suggest_friends = []
+        
         for user_id_to_add in user_ids_to_add:
             try:
                 user_id_to_add = ObjectId(user_id_to_add)
             except Exception as e:
                 continue  
+            
             if str(user_id_to_add) not in suggest_friends_set:
-                updated_suggest_friends.append({"_id": user_id_to_add})
+                updated_suggest_friends.append(user_id_to_add) 
                 suggest_friends_set.add(str(user_id_to_add))
 
         updated_suggest_friends.extend(suggest_friends)
-        updated_suggest_friends = [{"_id": str(friend["_id"])} for friend in updated_suggest_friends]
-
-        users_collection.update_one({"_id": user_id}, {"$set": {"suggestFriends": updated_suggest_friends}})
-        
+        users_collection.update_one({"_id": user_id}, {"$set": {"suggestfriends": updated_suggest_friends}})
         return {"suggestFriends": updated_suggest_friends}
     else:
         return {"error": "User not found", "suggestFriends": []}
-
 # Convert image (numpy.ndarray) to base64 string
 def convert_image_to_base64(image):
     """Convert numpy.ndarray to base64 string."""

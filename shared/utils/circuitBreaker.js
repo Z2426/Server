@@ -6,7 +6,6 @@ const options = {
   resetTimeout: 1000 // Thời gian phục hồi sau khi ngắt (30 giây)
 };
 const requestWithCircuitBreaker = (url, method = 'GET', data = null, headers = {}) => {
-  console.log(data)
   const requestFunction = async () => {
     switch (method) {
       case 'GET':

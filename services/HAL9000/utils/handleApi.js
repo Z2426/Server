@@ -26,7 +26,7 @@ exports.findUser = async (criteria) => {
 
 exports.processInputFindUser = (inputData) => {
     const criteria = {};
-    const allowedKeys = ['age', 'name', 'workplace', 'interest', 'address', 'province'];
+    const allowedKeys = ['age', 'name', 'workplace', 'interest', 'address', 'province', 'school'];
     const fieldMappings = {
         "ADDRESS:ADDRESS": "address",
         "AGE:AGE": "age",
