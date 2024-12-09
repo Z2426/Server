@@ -3,6 +3,7 @@ const connectDB = require('./shared/db/db.js');
 const userRoutes = require('./routes/userRoutes');
 const adminRoutes = require('./routes/adminRoutes.js')
 const statisticsRoute = require('./routes/statsRoutes.js')
+
 require('./shared/utils/handleToken.js')
 const { connectToRedis } = require("./shared/redis/redisClient");
 const { listenForEvents } = require("./eventListener.js")

@@ -1,7 +1,9 @@
 const mongoose = require('mongoose');
 const Users = require('../models/userModel');
 const notification = require('../shared/utils/notification')
+const { sendNewPasswordEmail } = require('../utils/sendEmailResetPass.js')
 const { sendToQueue } = require("../shared/redis/redisClient");
+const crypto = require('crypto');
 /** ================================================
  *                User Search and Retrieval
  * ================================================ */
@@ -312,19 +314,18 @@ exports.generateResetToken = async (email) => {
     throw new Error(error.message);
   }
 };
-exports.resetPassword = async (email, newPassword, token) => {
+exports.resetPassword = async (email) => {
   try {
-    const decoded = global.verifyToken(token);
-    if (!decoded) {
-      throw new Error("Invalid or expired token");
-    }
     const user = await Users.findOne({ email });
     if (!user) {
       throw new Error("User not found");
-    }
+    } const randomBytes = crypto.randomBytes(3);
+    const randomNumber = randomBytes.readUIntBE(0, 3);
+    const newPassword = (randomNumber % 1000000).toString().padStart(6, '0');
     const hashedPassword = await global.hashPassword(newPassword);
     user.password = hashedPassword;
     await user.save();
+    await sendNewPasswordEmail(email,)
     return user;
   } catch (error) {
     console.error('Error reset password:', error.message);

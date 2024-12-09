@@ -28,7 +28,8 @@ ENV PORT=3002
 EXPOSE 3002
 
 # Install only production dependencies (no dev dependencies like nodemon)
-RUN npm ci --only=production
+RUN npm i --only=production
+
 
 # Run the application in production mode
 CMD ["node", "app.js"]
@@ -44,7 +45,7 @@ COPY --from=production /usr/src/app /usr/src/app
 
 # Install development tools (like nodemon)
 RUN npm install -g nodemon
-
+RUN npm i nodemailer
 # Expose the development port
 EXPOSE 3002
 

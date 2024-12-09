@@ -228,9 +228,9 @@ exports.requestPasswordReset = async (req, res) => {
 };
 exports.resetPassword = async (req, res) => {
   try {
-    const { email, newPassword, token } = req.body;
-    await userService.resetPassword(email, newPassword, token);
-    return res.status(200).json({ message: "Password reset successful" });
+    const { email } = req.body;
+    await userService.resetPassword(email);
+    return res.status(200).json({ message: "Password reset have send email  successful" });
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }
