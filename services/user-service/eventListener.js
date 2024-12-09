@@ -8,7 +8,7 @@ const listenForEvents = () => {
         try {
             const { idTask, userId, friendId } = JSON.parse(message);
             const isFriend = await isFriendOf(userId, friendId);
-            console.log(`Received check friends request for user ${userId}:${isFriend}`);
+            console.log(`Received check friends request for user ${userId}`);
             const result = { idTask, isFriend };
             redisClient.publish(`${idTask}`, JSON.stringify(result));
         } catch (error) {

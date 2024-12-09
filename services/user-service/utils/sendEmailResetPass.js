@@ -1,6 +1,5 @@
 const nodemailer = require('nodemailer');
-require('dotenv').config();  // Tải các biến môi trường từ file .env
-
+require('dotenv').config();
 exports.sendNewPasswordEmail = async (to, newPassword) => {
     const userEmail = process.env.EMAIL_USER;
     const userPassword = process.env.EMAIL_PASS;
