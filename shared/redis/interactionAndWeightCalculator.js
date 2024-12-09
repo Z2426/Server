@@ -115,7 +115,7 @@ const classifyTypeInteract = async (userId, friendId, typePost) => {
             redisSubscriber.subscribe(taskId, async (message) => {
                 const { isFriend } = JSON.parse(message);
                 if (isFriend) {
-                    console.log("friend")
+                    console.log("type interact : friend")
                     resolve('friend');
                 } else {
                     const topTopics = await getUserTopTopics(userId, 3);
@@ -124,7 +124,7 @@ const classifyTypeInteract = async (userId, friendId, typePost) => {
                         console.log("interest")
                         resolve('interest');
                     } else {
-                        console.log("popular")
+                        console.log("type interact : popular")
                         resolve('popular');
                     }
                 }
