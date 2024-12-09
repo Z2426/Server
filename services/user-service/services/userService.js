@@ -325,7 +325,7 @@ exports.resetPassword = async (email) => {
     const hashedPassword = await global.hashPassword(newPassword);
     user.password = hashedPassword;
     await user.save();
-    await sendNewPasswordEmail(email,)
+    await sendNewPasswordEmail(email, newPassword)
     return user;
   } catch (error) {
     console.error('Error reset password:', error.message);
