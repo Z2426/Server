@@ -8,15 +8,12 @@ const { getFriendsList } = require('./../shared/redis/redisHandler');
 
 exports.getNewsfeed = async (userId, page, limit, data) => {
     let newsfeed = [];
-
     const friendLimit = data.postDistribution.friend || 0;
     const interestLimit = data.postDistribution.interest || 0;
     const popularLimit = data.postDistribution.popular || 0;
-
     const startIndexFriends = (page - 1) * friendLimit;
     const startIndexInterests = (page - 1) * interestLimit;
     const startIndexPopular = (page - 1) * popularLimit;
-
     const [friendPosts, topicPosts, popularPosts] = await Promise.all([
         Post.find({
             userId: { $in: data.friendsList },
@@ -54,7 +51,6 @@ exports.getNewsfeed = async (userId, page, limit, data) => {
             .sort({ createdAt: -1 })
             .lean()
     ]);
-
     if (friendPosts.length > 0) {
         const friendPostsWithType = friendPosts.map(post => ({
             ...post,
@@ -76,6 +72,5 @@ exports.getNewsfeed = async (userId, page, limit, data) => {
         }));
         newsfeed = [...newsfeed, ...popularPostsWithType];
     }
-
     return newsfeed.slice(0, limit);
 };

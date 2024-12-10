@@ -75,8 +75,6 @@ const userSchema = new mongoose.Schema({
   ],
   loginAttempts: { type: Number, default: 0 },
   lastLogin: { type: Date },
-}, {
-  timestamps: true
-});
+}, c);
 
 module.exports = mongoose.model("Users", userSchema);
