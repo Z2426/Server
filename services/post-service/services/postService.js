@@ -306,6 +306,37 @@ exports.createCommentOrReply = async (postId, userId, commentText, commentId = n
   await post.save();
   return post;
 };
+exports.toggleLikeCommentOrReply = async (postId, userId, commentId, replyId = null) => {
+  const post = await Post.findById(postId);
+  if (!post) {
+    throw new Error('Post not found');
+  }
+  const comment = post.comments.id(commentId);
+  if (!comment) {
+    throw new Error('Comment not found');
+  }
+  if (replyId) {
+    const reply = comment.replies.id(replyId);
+    if (!reply) {
+      throw new Error('Reply not found');
+    }
+    const likeIndex = reply.likes.indexOf(userId);
+    if (likeIndex > -1) {
+      reply.likes.splice(likeIndex, 1);
+    } else {
+      reply.likes.push(userId);
+    }
+  } else {
+    const likeIndex = comment.likes.indexOf(userId);
+    if (likeIndex > -1) {
+      comment.likes.splice(likeIndex, 1);
+    } else {
+      comment.likes.push(userId);
+    }
+  }
+  await post.save();
+  return post;
+};
 exports.followPost = async (postId, userId) => {
   try {
     const post = await Post.findById(postId);

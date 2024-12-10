@@ -117,6 +117,17 @@ exports.deletePostViolate = async (req, res) => {
 /** ================================================
  *                Post Comments & Replies
  * ================================================ */
+exports.likeComentOrLike = async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const { commentId, replyId } = req.body
+    const currentUserId = req.body.user.userId;
+    const result = await postService.toggleLikeCommentOrReply(postId, currentUserId, commentId, replyId);
+    res.status(200).json({ success: true, message: 'Like toggled successfully.', data: result });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
 
 exports.createCommentOrReply = async (req, res) => {
   const { postId } = req.params;

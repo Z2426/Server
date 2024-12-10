@@ -38,10 +38,13 @@ router.get('/:postId/comments', authMiddleware.verifyTokenMiddleware, postContro
 /** ================================================
  *              FOLLOW, LIKE, AND VIEW POST
  * ================================================ */
+
 // Follow a post
 router.put('/:postId/follow', authMiddleware.verifyTokenMiddleware, postController.followPost);
 // Toggle like for a post
 router.put('/:postId/like', authMiddleware.verifyTokenMiddleware, postController.toggleLikePost);
+//TOGLE LIKE COMMENT
+router.put('/:postId/likecomment', authMiddleware.verifyTokenMiddleware, postController.likeComentOrLike);
 // Mark a post as viewed
 router.put('/:postId/viewed', authMiddleware.verifyTokenMiddleware, postController.markPostAsViewed);
 /** ================================================

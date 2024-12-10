@@ -24,8 +24,9 @@ router.get('/friend-requests', authMiddleware.verifyTokenMiddleware, userControl
 router.post('/friends', authMiddleware.verifyTokenMiddleware, userController.getFriends); // Get friends
 
 /** ================================================
- *                FOLLOW MANAGEMENT
+ *                INTERACT MANAGEMENT
  * ================================================ */
+
 router.post('/follow-toggle/:followedId', authMiddleware.verifyTokenMiddleware, userController.toggleFollowUser); // Toggle follow
 router.get('/following', authMiddleware.verifyTokenMiddleware, userController.getFollowing); // Get following
 router.get('/followers', authMiddleware.verifyTokenMiddleware, userController.getFollowers); // Get followers
