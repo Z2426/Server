@@ -81,7 +81,8 @@ exports.getUserById = async (req, res) => {
       'interests',
       'cover_photo',
       'friends',
-      'createdAt'
+      'createdAt',
+      'friendRequests'
     ];
     if (!mongoose.Types.ObjectId.isValid(userId)) {
       return res.status(400).json({ message: 'Invalid user ID' });
